@@ -1,0 +1,1 @@
+CREATE DATABASE project_legacy_test WITH ENCODING = 'UTF8' CONNECTION LIMIT = - 1;
