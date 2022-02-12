@@ -1,7 +1,6 @@
 package p
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -16,13 +15,12 @@ import (
 // Google Cloud Function
 func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Request) {
 	godotenv.Load()
-	apiReq, statusCode, err := DecodeAndVerifySchedulerSecret(r)
+	statusCode, err := VerifySecretHeader(r)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Decode and verify auth failed", statusCode)
 		return
 	}
-
 	// Establishing connection to database
 	ctx := r.Context()
 	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig(os.Getenv("ENVIRONMENT")))
@@ -39,24 +37,24 @@ func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Re
 		return
 	}
 	defer tx.Rollback(ctx)
-
 	a := api.APIForScheduler{
 		Context: ctx,
 		Tx:      tx,
 	}
 	var res api.APIResponse
-	switch apiReq.Action {
+	action := r.URL.Query().Get("action")
+	switch action {
+	case "send-reminder-messages":
+		res, err = a.SendReminderMessages()
+		break
+	case "send-testaments":
+		res, err = a.SendTestamentsOfInactiveMessages()
+		break
 	case "select-messages-need-reminding":
 		res, err = a.SelectMessagesNeedReminding()
 		break
-	case "update-message-after-sending-reminder":
-		res, err = a.UpdateMessageAfterSendingReminder(apiReq.Data.ID)
-		break
 	case "select-inactive-messages":
 		res, err = a.SelectInactiveMessages()
-		break
-	case "update-message-after-sending-testament":
-		res, err = a.UpdateMessageAfterSendingTestament(apiReq.Data.ID)
 		break
 	default:
 		err = errors.New("Invalid Action")
@@ -66,7 +64,7 @@ func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Re
 	// Handle controller error
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), res.StatusCode)
+		http.Error(w, err.Error(), res.GetValidStatusCode())
 		return
 	}
 	// Generate response
@@ -80,22 +78,14 @@ func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Re
 	fmt.Fprint(w, resStr)
 }
 
-func DecodeAndVerifySchedulerSecret(r *http.Request) (req api.APIRequestMessageData, statusCode int, err error) {
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		statusCode = http.StatusBadRequest
-		return
-	}
+func VerifySecretHeader(r *http.Request) (statusCode int, err error) {
 	serverSecret := os.Getenv("STATIC_SECRET")
 	if len(serverSecret) != api.ExtensionSecretLength {
-		statusCode = http.StatusInternalServerError
-		err = errors.New("env STATIC_SECRET is invalid: " + serverSecret)
-		return
+		return http.StatusInternalServerError, errors.New("env STATIC_SECRET is invalid: " + serverSecret)
 	}
 	clientSecret := r.Header.Get("x-static-secret")
 	if serverSecret != clientSecret {
-		statusCode = http.StatusUnauthorized
-		err = errors.New("Invalid x-static-secret header: " + clientSecret)
-		return
+		return http.StatusUnauthorized, errors.New("Invalid secret header: " + clientSecret)
 	}
-	return req, http.StatusOK, nil
+	return http.StatusOK, nil
 }

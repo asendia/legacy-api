@@ -1,0 +1,408 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "legacy-api",
+  "dateExported": "2022-02-14T18:55:43.226Z",
+  "version": "1.1",
+  "folders": [
+    {
+      "containerId": "",
+      "sortNum": 20000,
+      "name": "prod",
+      "_id": "c129f588-e687-4678-9887-ad96237ecb51",
+      "created": "2022-02-13T17:45:41.833Z",
+      "settings": {
+        "headers": [],
+        "auth": { "type": "bearer", "bearer": "PUT_NETLIFY_JWT_HERE" },
+        "tests": []
+      }
+    },
+    {
+      "containerId": "",
+      "sortNum": 30000,
+      "name": "dev",
+      "_id": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "created": "2022-02-14T11:13:04.743Z"
+    }
+  ],
+  "requests": [
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 10000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "insert-message",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api?action=insert-message",
+      "method": "POST",
+      "modified": "2022-02-14T18:55:03.264Z",
+      "created": "2022-02-13T17:45:41.835Z",
+      "_id": "6bceb4bf-1a15-4e50-9bce-ccc61d2d82b8",
+      "params": [
+        { "name": "action", "value": "insert-message", "isPath": false }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 10,\n  \"messageContent\": \"This is real API content asd asd asd asd asd asd asd asd asd asd asd asd \",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 10000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "insert-message",
+      "url": "http://localhost:8080/legacy-api?action=insert-message",
+      "method": "POST",
+      "modified": "2022-02-14T15:09:58.578Z",
+      "created": "2022-02-14T11:13:04.743Z",
+      "_id": "9b7b36e2-6deb-4293-9639-7edb9925942a",
+      "params": [
+        { "name": "action", "value": "insert-message", "isPath": false }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 10,\n  \"messageContent\": \"Put some messages here\\nThis is another line\\nThis one is another\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 20000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "select-messages",
+      "url": "http://localhost:8080/legacy-api?action=select-messages",
+      "method": "GET",
+      "modified": "2022-02-14T15:10:02.044Z",
+      "created": "2022-02-14T11:13:04.744Z",
+      "_id": "4ef64380-fddb-49e9-b455-811759c0cad2",
+      "params": [
+        { "name": "action", "value": "select-messages", "isPath": false }
+      ],
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 20000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "select-messages",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api?action=select-messages",
+      "method": "GET",
+      "modified": "2022-02-14T15:09:35.043Z",
+      "created": "2022-02-13T17:45:41.835Z",
+      "_id": "74d4f062-19dd-4ba2-b869-b35ddbf3d887",
+      "params": [
+        { "name": "action", "value": "select-messages", "isPath": false }
+      ],
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 25000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "update-message",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api?action=update-message",
+      "method": "POST",
+      "modified": "2022-02-14T17:37:41.197Z",
+      "created": "2022-02-13T17:45:41.835Z",
+      "_id": "a7fe4e1a-6deb-4506-bb15-54ed1c3c62ee",
+      "params": [
+        { "name": "action", "value": "update-message", "isPath": false }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"id\": \"c17079db-f058-43ca-a4a5-7d5a2c2abdd9\",\n  \"emailReceivers\": [\n    \"inkamemang@kentut\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again\",\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 5,\n  \"isActive\": true\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 25000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "update-message",
+      "url": "http://localhost:8080/legacy-api?action=update-message",
+      "method": "POST",
+      "modified": "2022-02-14T17:01:34.403Z",
+      "created": "2022-02-14T11:43:34.699Z",
+      "_id": "b0f8cd6d-d508-4648-9106-b52e620e3543",
+      "params": [
+        { "name": "action", "value": "update-message", "isPath": false }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"id\": \"185caa8b-7edf-4fbe-9015-c473457ab403\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": true\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 30000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "extend-message",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-secret?action=extend-message&id=2d4fbd7c-f00d-47fc-b7c4-418708f0d2a6&secret=TLKIme7JcIPk2n7-YrAiA7FHlNvFy9AmNb62e-NhLNNrP0jxKQKrnAYcSKcfbgeBc6XUJ",
+      "method": "GET",
+      "modified": "2022-02-14T17:27:46.590Z",
+      "created": "2022-02-13T17:45:41.835Z",
+      "_id": "13a1a116-6bc7-4e7d-90af-75499c6302ba",
+      "params": [
+        { "name": "action", "value": "extend-message", "isPath": false },
+        {
+          "name": "id",
+          "value": "2d4fbd7c-f00d-47fc-b7c4-418708f0d2a6",
+          "isPath": false
+        },
+        {
+          "name": "secret",
+          "value": "TLKIme7JcIPk2n7-YrAiA7FHlNvFy9AmNb62e-NhLNNrP0jxKQKrnAYcSKcfbgeBc6XUJ",
+          "isPath": false
+        }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 30000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "extend-message",
+      "url": "http://localhost:8080/legacy-api-secret?action=extend-message&id=0eb8ba25-6c2d-4516-8bb0-c06101223cd3&secret=mhHp-ruJROdYL17kIP5zeQdJ6bc0nePI49FZ23e7mCMQJWLe9c7ROtA7mWyhoi9jKOYSw",
+      "method": "GET",
+      "modified": "2022-02-14T15:10:12.871Z",
+      "created": "2022-02-14T11:13:04.744Z",
+      "_id": "8dee7c3f-236b-47c2-9625-ede13772a7d4",
+      "params": [
+        { "name": "action", "value": "extend-message", "isPath": false },
+        {
+          "name": "id",
+          "value": "0eb8ba25-6c2d-4516-8bb0-c06101223cd3",
+          "isPath": false
+        },
+        {
+          "name": "secret",
+          "value": "mhHp-ruJROdYL17kIP5zeQdJ6bc0nePI49FZ23e7mCMQJWLe9c7ROtA7mWyhoi9jKOYSw",
+          "isPath": false
+        }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 40000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        { "name": "x-static-secret", "value": "STATIC_SECRET" }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "send-reminder-messages",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=send-reminder-messages",
+      "method": "POST",
+      "modified": "2022-02-14T18:50:30.241Z",
+      "created": "2022-02-14T16:37:10.396Z",
+      "_id": "20615f8e-87d1-4728-b16d-a80112b18b3c",
+      "params": [
+        { "name": "action", "value": "send-reminder-messages", "isPath": false }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 40000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        {
+          "name": "x-static-secret",
+          "value": "69 chars Bitcoin is the future Bitcoin is the future Bitcoin is goood"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "send-reminder-messages",
+      "url": "http://localhost:8080/legacy-api-scheduler?action=send-reminder-messages",
+      "method": "POST",
+      "modified": "2022-02-14T15:10:18.103Z",
+      "created": "2022-02-14T11:45:24.931Z",
+      "_id": "222aba1e-5b75-441f-af75-2414485cb289",
+      "params": [
+        { "name": "action", "value": "send-reminder-messages", "isPath": false }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 50000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        { "name": "x-static-secret", "value": "STATIC_SECRET" }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "send-testaments",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=send-testaments",
+      "method": "POST",
+      "modified": "2022-02-14T18:52:25.997Z",
+      "created": "2022-02-14T16:37:41.228Z",
+      "_id": "b1a7395c-6a9e-4a9a-961d-23d7c2382e18",
+      "params": [
+        { "name": "action", "value": "send-testaments", "isPath": false }
+      ],
+      "auth": { "type": "bearer" },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 50000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        {
+          "name": "x-static-secret",
+          "value": "69 chars Bitcoin is the future Bitcoin is the future Bitcoin is goood"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "send-testaments",
+      "url": "http://localhost:8080/legacy-api-scheduler?action=send-testaments",
+      "method": "POST",
+      "modified": "2022-02-14T15:10:25.174Z",
+      "created": "2022-02-14T14:42:36.174Z",
+      "_id": "f165cdd0-0542-47b4-bd5c-efbaf6fd133e",
+      "params": [
+        { "name": "action", "value": "send-testaments", "isPath": false }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
+      "sortNum": 60000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        { "name": "x-static-secret", "value": "STATIC_SECRET" }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "select-messages-need-reminding",
+      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=select-messages-need-reminding",
+      "method": "POST",
+      "modified": "2022-02-14T18:52:24.757Z",
+      "created": "2022-02-14T17:28:37.562Z",
+      "_id": "db2565a2-e307-4f07-99ae-7c682fad21eb",
+      "params": [
+        {
+          "name": "action",
+          "value": "select-messages-need-reminding",
+          "isPath": false
+        }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    },
+    {
+      "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
+      "sortNum": 60000,
+      "headers": [
+        { "name": "Accept", "value": "*/*" },
+        {
+          "name": "User-Agent",
+          "value": "Thunder Client (https://www.thunderclient.com)"
+        },
+        {
+          "name": "x-static-secret",
+          "value": "69 chars Bitcoin is the future Bitcoin is the future Bitcoin is goood"
+        }
+      ],
+      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
+      "name": "select-messages-need-reminding",
+      "url": "http://localhost:8080/legacy-api-scheduler?action=select-messages-need-reminding",
+      "method": "POST",
+      "modified": "2022-02-14T17:41:37.457Z",
+      "created": "2022-02-14T17:40:24.063Z",
+      "_id": "dcf7814e-9f5d-4002-9fc3-9743fc67926d",
+      "params": [
+        {
+          "name": "action",
+          "value": "select-messages-need-reminding",
+          "isPath": false
+        }
+      ],
+      "auth": { "type": "none" },
+      "tests": []
+    }
+  ]
+}

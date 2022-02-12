@@ -1,2 +1,5 @@
+.DS_Store
+.env-dev.yaml
 .env-prod.yaml
+.env-test.yaml
 legacy-api*.zip

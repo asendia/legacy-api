@@ -23,11 +23,7 @@ type MessageData struct {
 	ExtensionSecret      string    `json:"extension_secret"`
 	InactiveAt           time.Time `json:"inactiveAt"`
 	NextReminderAt       time.Time `json:"nextReminderAt"`
-}
-
-type SchedulerData struct {
-	ID     int32  `json:"id"`
-	Secret string `json:"secret"`
+	SentCounter          int32     `json:"sentCounter"`
 }
 
 func DecryptMessageContent(str string, secret string) (string, error) {
