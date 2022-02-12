@@ -15,11 +15,15 @@ import (
 
 // Google Cloud Function
 func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Request) {
+	corsStatus, err := api.VerifyCORS(w, r)
+	if err != nil || corsStatus != http.StatusAccepted {
+		return
+	}
 	godotenv.Load()
-	apiReq, statusCode, err := DecodeAndVerifyUserSecret(r)
+	secret, messageID, err := VerifyQueryString(r)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Decode and verify auth failed", statusCode)
+		http.Error(w, "Invalid query string", http.StatusForbidden)
 		return
 	}
 
@@ -39,25 +43,29 @@ func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer tx.Rollback(ctx)
-
 	a := api.APIForFrontend{
 		Context: ctx,
 		Tx:      tx,
 	}
 	var res api.APIResponse
-	switch apiReq.Action {
+	action := r.URL.Query().Get("action")
+	switch action {
 	case "extend-message":
-		res, err = a.ExtendMessageInactiveAt(apiReq.Data.ID, apiReq.Data.ExtensionSecret)
+		res, err = a.ExtendMessageInactiveAt(secret, messageID)
+		break
+	case "unsubscribe-message":
+		res, err = a.UnsubscribeMessage(secret, messageID)
 		break
 	default:
 		err = errors.New("Invalid Action")
 		res.StatusCode = http.StatusNotFound
+		res.ResponseMsg = err.Error()
 		break
 	}
 	// Handle controller error
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), res.StatusCode)
+		http.Error(w, err.Error(), res.GetValidStatusCode())
 		return
 	}
 	// Generate response
@@ -71,21 +79,15 @@ func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Reque
 	fmt.Fprint(w, resStr)
 }
 
-func DecodeAndVerifyUserSecret(r *http.Request) (req api.APIRequestMessageData, statusCode int, err error) {
+func VerifyQueryString(r *http.Request) (secret string, id uuid.UUID, err error) {
 	q := r.URL.Query()
-	id, err := uuid.Parse(q.Get("id"))
+	id, err = uuid.Parse(q.Get("id"))
 	if err != nil {
-		return req, http.StatusBadRequest, err
+		return secret, id, err
 	}
-	secret := q.Get("secret")
+	secret = q.Get("secret")
 	if len(secret) != api.ExtensionSecretLength {
-		return req, http.StatusBadRequest, errors.New("Invalid secret")
+		return secret, id, errors.New("Invalid secret")
 	}
-	return api.APIRequestMessageData{
-		Action: q.Get("action"),
-		Data: api.MessageData{
-			ID:              id,
-			ExtensionSecret: secret,
-		},
-	}, http.StatusOK, nil
+	return secret, id, err
 }

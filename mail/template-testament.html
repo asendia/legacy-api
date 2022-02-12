@@ -1,0 +1,15 @@
+<h3>{{.Title}}</h3>
+<p>Dear {{.FullName}},</p>
+<p>
+  This email is sent because {{.EmailCreator}} registered your email at
+  warisin.com as the recipient of his/her testament or will. Below is the
+  content of the message:
+</p>
+<p>{{range .MessageContentPerLine}}{{.}}<br />{{end}}</p>
+<p>
+  Please click this url to let us know that you have read this email, so we
+  won't send you this email again:<br />
+  <a href="{{.UnsubscribeURL}}">{{.UnsubscribeURL}}</a>
+</p>
+<p>Best,</p>
+<p>Warisin Team</p>

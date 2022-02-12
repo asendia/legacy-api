@@ -1,0 +1,18 @@
+<h3>{{.Title}}</h3>
+<p>Dear {{.FullName}},</p>
+<p>
+  This is a reminder to postpone the delivery of a testament message that you
+  created in warisin.com. Your testament is scheduled to be sent on
+  {{.InactiveAt}} to these emails:
+</p>
+<ul>
+  {{range .EmailReceivers}}<li>{{.}}</li>{{end}}
+</ul>
+<p>Please click this link to postpone the testament delivery: <a href="{{.ExtensionURL}}">{{.ExtensionURL}}</a></p>
+<p>
+  If you wish to deactivate or edit your testament, login to
+  <a href="https://warisin.com/">warisin.com</a> and edit your testament message
+  there.
+</p>
+<p>Best,</p>
+<p>Warisin Team</p>

@@ -11,155 +11,203 @@ import (
 )
 
 const deleteMessage = `-- name: DeleteMessage :one
-DELETE FROM public.messages
+DELETE FROM messages
 WHERE id = $1
+  AND email_creator = $2
 RETURNING
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
-type DeleteMessageRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
+type DeleteMessageParams struct {
+	ID           uuid.UUID
+	EmailCreator string
 }
 
-func (q *Queries) DeleteMessage(ctx context.Context, id uuid.UUID) (DeleteMessageRow, error) {
-	row := q.db.QueryRow(ctx, deleteMessage, id)
-	var i DeleteMessageRow
+func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error) {
+	row := q.db.QueryRow(ctx, deleteMessage, arg.ID, arg.EmailCreator)
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
 	)
 	return i, err
 }
 
+const deleteMessagesEmailReceiver = `-- name: DeleteMessagesEmailReceiver :exec
+DELETE FROM messages_email_receivers
+WHERE message_id = $1
+  AND email_receiver = $2
+`
+
+type DeleteMessagesEmailReceiverParams struct {
+	MessageID     uuid.UUID
+	EmailReceiver string
+}
+
+func (q *Queries) DeleteMessagesEmailReceiver(ctx context.Context, arg DeleteMessagesEmailReceiverParams) error {
+	_, err := q.db.Exec(ctx, deleteMessagesEmailReceiver, arg.MessageID, arg.EmailReceiver)
+	return err
+}
+
+const insertEmailIgnoreConflict = `-- name: InsertEmailIgnoreConflict :exec
+INSERT INTO emails (email)
+  VALUES ($1)
+ON CONFLICT
+  DO NOTHING
+`
+
+func (q *Queries) InsertEmailIgnoreConflict(ctx context.Context, email string) error {
+	_, err := q.db.Exec(ctx, insertEmailIgnoreConflict, email)
+	return err
+}
+
 const insertMessage = `-- name: InsertMessage :one
-INSERT INTO public.messages (email_creator, email_receivers, message_content, inactive_period_days,
-  reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
+  reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
+  VALUES ($1, $2, $3, $4, $5, CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3), CURRENT_DATE +
+    MAKE_INTERVAL(0, 0, 0, $4))
 RETURNING
-  id, created_at, email_creator, email_receivers, message_content, inactive_period_days,
-    reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
 type InsertMessageParams struct {
 	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
+	ContentEncrypted     string
 	InactivePeriodDays   int32
 	ReminderIntervalDays int32
-	IsActive             bool
 	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
 }
 
-type InsertMessageRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
-}
-
-func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (InsertMessageRow, error) {
+func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (Message, error) {
 	row := q.db.QueryRow(ctx, insertMessage,
 		arg.EmailCreator,
-		arg.EmailReceivers,
-		arg.MessageContent,
+		arg.ContentEncrypted,
 		arg.InactivePeriodDays,
 		arg.ReminderIntervalDays,
-		arg.IsActive,
 		arg.ExtensionSecret,
-		arg.InactiveAt,
-		arg.NextReminderAt,
 	)
-	var i InsertMessageRow
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
 	)
+	return i, err
+}
+
+const insertMessagesEmailReceiver = `-- name: InsertMessagesEmailReceiver :one
+INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
+  VALUES ($1, $2, $3)
+RETURNING
+  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
+`
+
+type InsertMessagesEmailReceiverParams struct {
+	MessageID         uuid.UUID
+	EmailReceiver     string
+	UnsubscribeSecret string
+}
+
+func (q *Queries) InsertMessagesEmailReceiver(ctx context.Context, arg InsertMessagesEmailReceiverParams) (MessagesEmailReceiver, error) {
+	row := q.db.QueryRow(ctx, insertMessagesEmailReceiver, arg.MessageID, arg.EmailReceiver, arg.UnsubscribeSecret)
+	var i MessagesEmailReceiver
+	err := row.Scan(
+		&i.MessageID,
+		&i.EmailReceiver,
+		&i.IsUnsubscribed,
+		&i.UnsubscribeSecret,
+	)
+	return i, err
+}
+
+const selectEmail = `-- name: SelectEmail :one
+SELECT
+  email, created_at, is_active
+FROM
+  emails
+WHERE
+  email = $1
+`
+
+func (q *Queries) SelectEmail(ctx context.Context, email string) (Email, error) {
+	row := q.db.QueryRow(ctx, selectEmail, email)
+	var i Email
+	err := row.Scan(&i.Email, &i.CreatedAt, &i.IsActive)
 	return i, err
 }
 
 const selectInactiveMessages = `-- name: SelectInactiveMessages :many
 SELECT
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  emails.email AS usr_email,
+  emails.created_at AS usr_created_at,
+  emails.is_active AS usr_is_active,
+  messages.id AS msg_id,
+  messages.email_creator AS msg_email_creator,
+  messages.created_at AS msg_created_at,
+  messages.content_encrypted AS msg_content_encrypted,
+  messages.inactive_period_days AS msg_inactive_period_days,
+  messages.reminder_interval_days AS msg_reminder_interval_days,
+  messages.is_active AS msg_is_active,
+  messages.extension_secret AS msg_extension_secret,
+  messages.inactive_at AS msg_inactive_at,
+  messages.next_reminder_at AS msg_next_reminder_at,
+  messages.sent_counter AS msg_sent_counter,
+  message_id AS rcv_message_id,
+  email_receiver AS rcv_email_receiver,
+  is_unsubscribed AS rcv_is_unsubscribed,
+  unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
-  public.messages
+  emails
+  INNER JOIN messages ON emails.email = messages.email_creator
+  INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
 WHERE
-  inactive_at < $1
+  messages.inactive_at < CURRENT_DATE
+  AND messages.is_active
+  AND sent_counter < 3
+  AND receivers.is_unsubscribed = FALSE
 LIMIT 100
 `
 
 type SelectInactiveMessagesRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
+	UsrEmail                string
+	UsrCreatedAt            time.Time
+	UsrIsActive             bool
+	MsgID                   uuid.UUID
+	MsgEmailCreator         string
+	MsgCreatedAt            time.Time
+	MsgContentEncrypted     string
+	MsgInactivePeriodDays   int32
+	MsgReminderIntervalDays int32
+	MsgIsActive             bool
+	MsgExtensionSecret      string
+	MsgInactiveAt           time.Time
+	MsgNextReminderAt       time.Time
+	MsgSentCounter          int32
+	RcvMessageID            uuid.UUID
+	RcvEmailReceiver        string
+	RcvIsUnsubscribed       bool
+	RcvUnsubscribeSecret    string
 }
 
-func (q *Queries) SelectInactiveMessages(ctx context.Context, inactiveAt time.Time) ([]SelectInactiveMessagesRow, error) {
-	rows, err := q.db.Query(ctx, selectInactiveMessages, inactiveAt)
+func (q *Queries) SelectInactiveMessages(ctx context.Context) ([]SelectInactiveMessagesRow, error) {
+	rows, err := q.db.Query(ctx, selectInactiveMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -168,17 +216,24 @@ func (q *Queries) SelectInactiveMessages(ctx context.Context, inactiveAt time.Ti
 	for rows.Next() {
 		var i SelectInactiveMessagesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.EmailCreator,
-			&i.EmailReceivers,
-			&i.MessageContent,
-			&i.InactivePeriodDays,
-			&i.ReminderIntervalDays,
-			&i.IsActive,
-			&i.ExtensionSecret,
-			&i.InactiveAt,
-			&i.NextReminderAt,
+			&i.UsrEmail,
+			&i.UsrCreatedAt,
+			&i.UsrIsActive,
+			&i.MsgID,
+			&i.MsgEmailCreator,
+			&i.MsgCreatedAt,
+			&i.MsgContentEncrypted,
+			&i.MsgInactivePeriodDays,
+			&i.MsgReminderIntervalDays,
+			&i.MsgIsActive,
+			&i.MsgExtensionSecret,
+			&i.MsgInactiveAt,
+			&i.MsgNextReminderAt,
+			&i.MsgSentCounter,
+			&i.RcvMessageID,
+			&i.RcvEmailReceiver,
+			&i.RcvIsUnsubscribed,
+			&i.RcvUnsubscribeSecret,
 		); err != nil {
 			return nil, err
 		}
@@ -190,89 +245,60 @@ func (q *Queries) SelectInactiveMessages(ctx context.Context, inactiveAt time.Ti
 	return items, nil
 }
 
-const selectMessageByID = `-- name: SelectMessageByID :one
-SELECT
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
-FROM
-  public.messages
-WHERE
-  id = $1
-`
-
-type SelectMessageByIDRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
-}
-
-func (q *Queries) SelectMessageByID(ctx context.Context, id uuid.UUID) (SelectMessageByIDRow, error) {
-	row := q.db.QueryRow(ctx, selectMessageByID, id)
-	var i SelectMessageByIDRow
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
-		&i.InactivePeriodDays,
-		&i.ReminderIntervalDays,
-		&i.IsActive,
-		&i.ExtensionSecret,
-		&i.InactiveAt,
-		&i.NextReminderAt,
-	)
-	return i, err
-}
-
 const selectMessagesByEmailCreator = `-- name: SelectMessagesByEmailCreator :many
 SELECT
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  emails.email AS usr_email,
+  emails.created_at AS usr_created_at,
+  emails.is_active AS usr_is_active,
+  messages.id AS msg_id,
+  messages.email_creator AS msg_email_creator,
+  messages.created_at AS msg_created_at,
+  messages.content_encrypted AS msg_content_encrypted,
+  messages.inactive_period_days AS msg_inactive_period_days,
+  messages.reminder_interval_days AS msg_reminder_interval_days,
+  messages.is_active AS msg_is_active,
+  messages.extension_secret AS msg_extension_secret,
+  messages.inactive_at AS msg_inactive_at,
+  messages.next_reminder_at AS msg_next_reminder_at,
+  messages.sent_counter AS msg_sent_counter,
+  message_id AS rcv_message_id,
+  email_receiver AS rcv_email_receiver,
+  is_unsubscribed AS rcv_is_unsubscribed,
+  unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
-  public.messages
+  emails
+  INNER JOIN messages ON messages.email_creator = emails.email
+  INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
+  INNER JOIN emails AS emails2 ON emails2.email = receivers.email_receiver
 WHERE
-  email_creator = $1
+  messages.email_creator = $1
+  AND emails.is_active
+  AND emails2.is_active
+  AND receivers.is_unsubscribed = FALSE
+ORDER BY
+  messages.id ASC
+LIMIT 10
 `
 
 type SelectMessagesByEmailCreatorRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
+	UsrEmail                string
+	UsrCreatedAt            time.Time
+	UsrIsActive             bool
+	MsgID                   uuid.UUID
+	MsgEmailCreator         string
+	MsgCreatedAt            time.Time
+	MsgContentEncrypted     string
+	MsgInactivePeriodDays   int32
+	MsgReminderIntervalDays int32
+	MsgIsActive             bool
+	MsgExtensionSecret      string
+	MsgInactiveAt           time.Time
+	MsgNextReminderAt       time.Time
+	MsgSentCounter          int32
+	RcvMessageID            uuid.UUID
+	RcvEmailReceiver        string
+	RcvIsUnsubscribed       bool
+	RcvUnsubscribeSecret    string
 }
 
 func (q *Queries) SelectMessagesByEmailCreator(ctx context.Context, emailCreator string) ([]SelectMessagesByEmailCreatorRow, error) {
@@ -285,17 +311,59 @@ func (q *Queries) SelectMessagesByEmailCreator(ctx context.Context, emailCreator
 	for rows.Next() {
 		var i SelectMessagesByEmailCreatorRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.EmailCreator,
-			&i.EmailReceivers,
-			&i.MessageContent,
-			&i.InactivePeriodDays,
-			&i.ReminderIntervalDays,
-			&i.IsActive,
-			&i.ExtensionSecret,
-			&i.InactiveAt,
-			&i.NextReminderAt,
+			&i.UsrEmail,
+			&i.UsrCreatedAt,
+			&i.UsrIsActive,
+			&i.MsgID,
+			&i.MsgEmailCreator,
+			&i.MsgCreatedAt,
+			&i.MsgContentEncrypted,
+			&i.MsgInactivePeriodDays,
+			&i.MsgReminderIntervalDays,
+			&i.MsgIsActive,
+			&i.MsgExtensionSecret,
+			&i.MsgInactiveAt,
+			&i.MsgNextReminderAt,
+			&i.MsgSentCounter,
+			&i.RcvMessageID,
+			&i.RcvEmailReceiver,
+			&i.RcvIsUnsubscribed,
+			&i.RcvUnsubscribeSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const selectMessagesEmailReceivers = `-- name: SelectMessagesEmailReceivers :many
+SELECT
+  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
+FROM
+  messages_email_receivers
+WHERE
+  message_id = $1
+LIMIT 3
+`
+
+func (q *Queries) SelectMessagesEmailReceivers(ctx context.Context, messageID uuid.UUID) ([]MessagesEmailReceiver, error) {
+	rows, err := q.db.Query(ctx, selectMessagesEmailReceivers, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessagesEmailReceiver
+	for rows.Next() {
+		var i MessagesEmailReceiver
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.EmailReceiver,
+			&i.IsUnsubscribed,
+			&i.UnsubscribeSecret,
 		); err != nil {
 			return nil, err
 		}
@@ -309,40 +377,60 @@ func (q *Queries) SelectMessagesByEmailCreator(ctx context.Context, emailCreator
 
 const selectMessagesNeedReminding = `-- name: SelectMessagesNeedReminding :many
 SELECT
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  emails.email AS usr_email,
+  emails.created_at AS usr_created_at,
+  emails.is_active AS usr_is_active,
+  messages.id AS msg_id,
+  messages.email_creator AS msg_email_creator,
+  messages.created_at AS msg_created_at,
+  messages.content_encrypted AS msg_content_encrypted,
+  messages.inactive_period_days AS msg_inactive_period_days,
+  messages.reminder_interval_days AS msg_reminder_interval_days,
+  messages.is_active AS msg_is_active,
+  messages.extension_secret AS msg_extension_secret,
+  messages.inactive_at AS msg_inactive_at,
+  messages.next_reminder_at AS msg_next_reminder_at,
+  messages.sent_counter AS msg_sent_counter,
+  message_id AS rcv_message_id,
+  email_receiver AS rcv_email_receiver,
+  is_unsubscribed AS rcv_is_unsubscribed,
+  unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
-  public.messages
+  emails
+  INNER JOIN messages ON emails.email = messages.email_creator
+  INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
 WHERE
-  next_reminder_at < $1
+  messages.is_active
+  AND messages.next_reminder_at <= CURRENT_DATE
+  AND receivers.is_unsubscribed = FALSE
+ORDER BY
+  messages.id ASC
 LIMIT 100
 `
 
 type SelectMessagesNeedRemindingRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
+	UsrEmail                string
+	UsrCreatedAt            time.Time
+	UsrIsActive             bool
+	MsgID                   uuid.UUID
+	MsgEmailCreator         string
+	MsgCreatedAt            time.Time
+	MsgContentEncrypted     string
+	MsgInactivePeriodDays   int32
+	MsgReminderIntervalDays int32
+	MsgIsActive             bool
+	MsgExtensionSecret      string
+	MsgInactiveAt           time.Time
+	MsgNextReminderAt       time.Time
+	MsgSentCounter          int32
+	RcvMessageID            uuid.UUID
+	RcvEmailReceiver        string
+	RcvIsUnsubscribed       bool
+	RcvUnsubscribeSecret    string
 }
 
-func (q *Queries) SelectMessagesNeedReminding(ctx context.Context, nextReminderAt time.Time) ([]SelectMessagesNeedRemindingRow, error) {
-	rows, err := q.db.Query(ctx, selectMessagesNeedReminding, nextReminderAt)
+func (q *Queries) SelectMessagesNeedReminding(ctx context.Context) ([]SelectMessagesNeedRemindingRow, error) {
+	rows, err := q.db.Query(ctx, selectMessagesNeedReminding)
 	if err != nil {
 		return nil, err
 	}
@@ -351,17 +439,24 @@ func (q *Queries) SelectMessagesNeedReminding(ctx context.Context, nextReminderA
 	for rows.Next() {
 		var i SelectMessagesNeedRemindingRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.EmailCreator,
-			&i.EmailReceivers,
-			&i.MessageContent,
-			&i.InactivePeriodDays,
-			&i.ReminderIntervalDays,
-			&i.IsActive,
-			&i.ExtensionSecret,
-			&i.InactiveAt,
-			&i.NextReminderAt,
+			&i.UsrEmail,
+			&i.UsrCreatedAt,
+			&i.UsrIsActive,
+			&i.MsgID,
+			&i.MsgEmailCreator,
+			&i.MsgCreatedAt,
+			&i.MsgContentEncrypted,
+			&i.MsgInactivePeriodDays,
+			&i.MsgReminderIntervalDays,
+			&i.MsgIsActive,
+			&i.MsgExtensionSecret,
+			&i.MsgInactiveAt,
+			&i.MsgNextReminderAt,
+			&i.MsgSentCounter,
+			&i.RcvMessageID,
+			&i.RcvEmailReceiver,
+			&i.RcvIsUnsubscribed,
+			&i.RcvUnsubscribeSecret,
 		); err != nil {
 			return nil, err
 		}
@@ -373,219 +468,168 @@ func (q *Queries) SelectMessagesNeedReminding(ctx context.Context, nextReminderA
 	return items, nil
 }
 
+const updateEmail = `-- name: UpdateEmail :one
+UPDATE
+  emails
+SET
+  is_active = $1
+WHERE
+  email = $2
+RETURNING
+  email, created_at, is_active
+`
+
+type UpdateEmailParams struct {
+	IsActive bool
+	Email    string
+}
+
+func (q *Queries) UpdateEmail(ctx context.Context, arg UpdateEmailParams) (Email, error) {
+	row := q.db.QueryRow(ctx, updateEmail, arg.IsActive, arg.Email)
+	var i Email
+	err := row.Scan(&i.Email, &i.CreatedAt, &i.IsActive)
+	return i, err
+}
+
 const updateMessage = `-- name: UpdateMessage :one
 UPDATE
-  public.messages
+  messages
 SET
-  email_creator = $1,
-  email_receivers = $2,
-  message_content = $3,
-  inactive_period_days = $4,
-  reminder_interval_days = $5,
-  is_active = $6,
-  extension_secret = $7,
-  inactive_at = CURRENT_DATE + (inactive_period_days || ' days')::interval,
-  next_reminder_at = CURRENT_DATE + (reminder_interval_days || ' days')::interval
+  content_encrypted = $1,
+  inactive_period_days = $2,
+  reminder_interval_days = $3,
+  is_active = $4,
+  extension_secret = $5,
+  inactive_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $2),
+  next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+  sent_counter = 0
 WHERE
-  id = $8
+  id = $6
+  AND email_creator = $7
 RETURNING
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
 type UpdateMessageParams struct {
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
+	ContentEncrypted     string
 	InactivePeriodDays   int32
 	ReminderIntervalDays int32
 	IsActive             bool
 	ExtensionSecret      string
 	ID                   uuid.UUID
-}
-
-type UpdateMessageRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
 	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
 }
 
-func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (UpdateMessageRow, error) {
+func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (Message, error) {
 	row := q.db.QueryRow(ctx, updateMessage,
-		arg.EmailCreator,
-		arg.EmailReceivers,
-		arg.MessageContent,
+		arg.ContentEncrypted,
 		arg.InactivePeriodDays,
 		arg.ReminderIntervalDays,
 		arg.IsActive,
 		arg.ExtensionSecret,
 		arg.ID,
+		arg.EmailCreator,
 	)
-	var i UpdateMessageRow
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
 	)
 	return i, err
 }
 
 const updateMessageAfterSendingReminder = `-- name: UpdateMessageAfterSendingReminder :one
 UPDATE
-  public.messages
+  messages
 SET
-  next_reminder_at = CURRENT_DATE + (reminder_interval_days || ' days')::interval
+  next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, reminder_interval_days)
 WHERE
   id = $1
 RETURNING
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
-type UpdateMessageAfterSendingReminderRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
-}
-
-func (q *Queries) UpdateMessageAfterSendingReminder(ctx context.Context, id uuid.UUID) (UpdateMessageAfterSendingReminderRow, error) {
+func (q *Queries) UpdateMessageAfterSendingReminder(ctx context.Context, id uuid.UUID) (Message, error) {
 	row := q.db.QueryRow(ctx, updateMessageAfterSendingReminder, id)
-	var i UpdateMessageAfterSendingReminderRow
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
 	)
 	return i, err
 }
 
 const updateMessageAfterSendingTestament = `-- name: UpdateMessageAfterSendingTestament :one
 UPDATE
-  public.messages
+  messages
 SET
-  inactive_at = CURRENT_DATE + (15 || ' days')::interval,
-  next_reminder_at = CURRENT_DATE + (30 || ' days')::interval
+  is_active = CASE WHEN sent_counter < 2 THEN
+    is_active
+  ELSE
+    FALSE
+  END,
+  sent_counter = sent_counter + 1,
+  inactive_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, 15),
+  next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, 30)
 WHERE
   id = $1
+  AND sent_counter < 3
+  AND is_active
 RETURNING
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
-type UpdateMessageAfterSendingTestamentRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
-}
-
-func (q *Queries) UpdateMessageAfterSendingTestament(ctx context.Context, id uuid.UUID) (UpdateMessageAfterSendingTestamentRow, error) {
+func (q *Queries) UpdateMessageAfterSendingTestament(ctx context.Context, id uuid.UUID) (Message, error) {
 	row := q.db.QueryRow(ctx, updateMessageAfterSendingTestament, id)
-	var i UpdateMessageAfterSendingTestamentRow
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
 	)
 	return i, err
 }
 
 const updateMessageExtendsInactiveAt = `-- name: UpdateMessageExtendsInactiveAt :one
 UPDATE
-  public.messages
+  messages
 SET
   extension_secret = $1,
-  inactive_at = CURRENT_DATE + (inactive_period_days || ' days')::interval,
-  next_reminder_at = CURRENT_DATE + (reminder_interval_days || ' days')::interval
+  inactive_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, inactive_period_days),
+  next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, reminder_interval_days)
 WHERE
   id = $2
   AND extension_secret = $3
+  AND inactive_at >= CURRENT_DATE
+  AND is_active
 RETURNING
-  id,
-  created_at,
-  email_creator,
-  email_receivers,
-  message_content,
-  inactive_period_days,
-  reminder_interval_days,
-  is_active,
-  extension_secret,
-  inactive_at,
-  next_reminder_at
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
 `
 
 type UpdateMessageExtendsInactiveAtParams struct {
@@ -594,35 +638,50 @@ type UpdateMessageExtendsInactiveAtParams struct {
 	ExtensionSecret_2 string
 }
 
-type UpdateMessageExtendsInactiveAtRow struct {
-	ID                   uuid.UUID
-	CreatedAt            time.Time
-	EmailCreator         string
-	EmailReceivers       []string
-	MessageContent       string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	IsActive             bool
-	ExtensionSecret      string
-	InactiveAt           time.Time
-	NextReminderAt       time.Time
-}
-
-func (q *Queries) UpdateMessageExtendsInactiveAt(ctx context.Context, arg UpdateMessageExtendsInactiveAtParams) (UpdateMessageExtendsInactiveAtRow, error) {
+func (q *Queries) UpdateMessageExtendsInactiveAt(ctx context.Context, arg UpdateMessageExtendsInactiveAtParams) (Message, error) {
 	row := q.db.QueryRow(ctx, updateMessageExtendsInactiveAt, arg.ExtensionSecret, arg.ID, arg.ExtensionSecret_2)
-	var i UpdateMessageExtendsInactiveAtRow
+	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.CreatedAt,
 		&i.EmailCreator,
-		&i.EmailReceivers,
-		&i.MessageContent,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
 		&i.InactivePeriodDays,
 		&i.ReminderIntervalDays,
 		&i.IsActive,
 		&i.ExtensionSecret,
 		&i.InactiveAt,
 		&i.NextReminderAt,
+		&i.SentCounter,
+	)
+	return i, err
+}
+
+const updateMessagesEmailReceiverUnsubscribe = `-- name: UpdateMessagesEmailReceiverUnsubscribe :one
+UPDATE
+  messages_email_receivers
+SET
+  is_unsubscribed = TRUE
+WHERE
+  message_id = $1
+  AND unsubscribe_secret = $2
+RETURNING
+  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
+`
+
+type UpdateMessagesEmailReceiverUnsubscribeParams struct {
+	MessageID         uuid.UUID
+	UnsubscribeSecret string
+}
+
+func (q *Queries) UpdateMessagesEmailReceiverUnsubscribe(ctx context.Context, arg UpdateMessagesEmailReceiverUnsubscribeParams) (MessagesEmailReceiver, error) {
+	row := q.db.QueryRow(ctx, updateMessagesEmailReceiverUnsubscribe, arg.MessageID, arg.UnsubscribeSecret)
+	var i MessagesEmailReceiver
+	err := row.Scan(
+		&i.MessageID,
+		&i.EmailReceiver,
+		&i.IsUnsubscribed,
+		&i.UnsubscribeSecret,
 	)
 	return i, err
 }
