@@ -8,16 +8,29 @@ import (
 	"github.com/google/uuid"
 )
 
+type Email struct {
+	Email     string
+	CreatedAt time.Time
+	IsActive  bool
+}
+
 type Message struct {
 	ID                   uuid.UUID
-	CreatedAt            time.Time
-	MessageContent       string
 	EmailCreator         string
-	EmailReceivers       []string
+	CreatedAt            time.Time
+	ContentEncrypted     string
 	InactivePeriodDays   int32
 	ReminderIntervalDays int32
 	IsActive             bool
 	ExtensionSecret      string
 	InactiveAt           time.Time
 	NextReminderAt       time.Time
+	SentCounter          int32
+}
+
+type MessagesEmailReceiver struct {
+	MessageID         uuid.UUID
+	EmailReceiver     string
+	IsUnsubscribed    bool
+	UnsubscribeSecret string
 }
