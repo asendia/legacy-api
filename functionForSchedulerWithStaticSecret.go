@@ -1,8 +1,8 @@
 package p
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,28 +13,19 @@ import (
 )
 
 // Google Cloud Function
-func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Request) {
+func CloudFunctionForSchedulerWithStaticSecret(ctx context.Context, m PubSubMessage) error {
 	godotenv.Load()
-	statusCode, err := VerifySecretHeader(r)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Decode and verify auth failed", statusCode)
-		return
-	}
 	// Establishing connection to database
-	ctx := r.Context()
 	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig(os.Getenv("ENVIRONMENT")))
 	if err != nil {
 		log.Printf("Cannot connect to the database: %v\n", err.Error())
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return err
 	}
 	defer conn.Close()
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		log.Printf("Cannot begin database transaction: %v\n", err.Error())
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return err
 	}
 	defer tx.Rollback(ctx)
 	a := api.APIForScheduler{
@@ -42,7 +33,7 @@ func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Re
 		Tx:      tx,
 	}
 	var res api.APIResponse
-	action := r.URL.Query().Get("action")
+	action := m.Attributes["action"]
 	switch action {
 	case "send-reminder-messages":
 		res, err = a.SendReminderMessages()
@@ -63,19 +54,28 @@ func CloudFunctionForSchedulerWithStaticSecret(w http.ResponseWriter, r *http.Re
 	}
 	// Handle controller error
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), res.GetValidStatusCode())
-		return
+		log.Printf("Controller error: %+v\n", err)
+		return err
 	}
 	// Generate response
 	resStr, err := res.ToString()
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Cannot generate a response", http.StatusInternalServerError)
-		return
+		log.Printf("Cannot generate a response: %v\n", err)
+		return err
 	}
 	tx.Commit(ctx)
-	fmt.Fprint(w, resStr)
+	log.Printf("Success action: %s, response: %s", action, resStr)
+	return nil
+}
+
+type PubSubRequest struct {
+	Message      PubSubMessage `json:"message"`
+	Subscription string        `json:"subscription"`
+}
+
+type PubSubMessage struct {
+	Data       []byte            `json:"data"`
+	Attributes map[string]string `json:"attributes"`
 }
 
 func VerifySecretHeader(r *http.Request) (statusCode int, err error) {

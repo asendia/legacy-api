@@ -89,16 +89,27 @@ gcloud functions deploy legacy-api-secret --allow-unauthenticated \
   --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
   --env-vars-file .env-prod.yaml
 
+# If you want to upload manually, zip for Google Cloud Function
+zip -r legacy-api.zip api/ data/ mail/ secure/ simple/ .env functionForFrontendWithNetlifyJWT.go functionForFrontendWithUserSecret.go functionForSchedulerWithStaticSecret.go go.mod go.sum
+```
+6. Deploy the scheduler
+```sh
+# Create a pub/sub topic - this might take a while
+gcloud pubsub topics create project-legacy-scheduler
+
+# Create a google cloud scheduler
+gcloud scheduler jobs create pubsub SendReminderMessages --location asia-southeast1 --schedule "22 19 * * *" \
+  --topic project-legacy-scheduler --attributes action=send-reminder-messages \
+  --description "Send reminder messages daily" --time-zone "Asia/Jakarta"
+gcloud scheduler jobs create pubsub SendTestaments --location asia-southeast1 --schedule "38 19 * * *" \
+  --topic project-legacy-scheduler --attributes action=send-testaments \
+  --description "Send reminder messages daily" --time-zone "Asia/Jakarta"
+
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
-# This function should be set to be accessible only from google cloud scheduler
-gcloud functions deploy legacy-api-scheduler --allow-unauthenticated \
-  --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-http \
+gcloud functions deploy legacy-api-scheduler \
+  --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
   --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
   --update-labels service=legacy --max-instances 100 \
   --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_PRIVATE_KEY=mailjet_private_key:latest \
   --env-vars-file .env-prod.yaml
-
-# If you want to upload manually, zip for Google Cloud Function
-zip -r legacy-api.zip api/ data/ mail/ secure/ simple/ .env functionForFrontendWithNetlifyJWT.go functionForFrontendWithUserSecret.go functionForSchedulerWithStaticSecret.go go.mod go.sum
 ```
-6. [TODO] Deploy the [google cloud scheduler](https://cloud.google.com/scheduler)
