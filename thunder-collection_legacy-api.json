@@ -1,7 +1,7 @@
 {
   "client": "Thunder Client",
   "collectionName": "legacy-api",
-  "dateExported": "2022-02-14T18:55:43.226Z",
+  "dateExported": "2022-02-15T20:38:33.627Z",
   "version": "1.1",
   "folders": [
     {
@@ -11,8 +11,8 @@
       "_id": "c129f588-e687-4678-9887-ad96237ecb51",
       "created": "2022-02-13T17:45:41.833Z",
       "settings": {
-        "headers": [],
-        "auth": { "type": "bearer", "bearer": "PUT_NETLIFY_JWT_HERE" },
+        "headers": [{ "name": "Origin", "value": "https://warisin.com" }],
+        "auth": { "type": "bearer", "bearer": "NETLIFY_JWT" },
         "tests": []
       }
     },
@@ -21,7 +21,11 @@
       "sortNum": 30000,
       "name": "dev",
       "_id": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
-      "created": "2022-02-14T11:13:04.743Z"
+      "created": "2022-02-14T11:13:04.743Z",
+      "settings": {
+        "headers": [{ "name": "Origin", "value": "http://localhost:3000" }],
+        "tests": []
+      }
     }
   ],
   "requests": [
@@ -39,7 +43,7 @@
       "name": "insert-message",
       "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api?action=insert-message",
       "method": "POST",
-      "modified": "2022-02-14T18:55:03.264Z",
+      "modified": "2022-02-15T20:32:23.409Z",
       "created": "2022-02-13T17:45:41.835Z",
       "_id": "6bceb4bf-1a15-4e50-9bce-ccc61d2d82b8",
       "params": [
@@ -47,7 +51,7 @@
       ],
       "body": {
         "type": "json",
-        "raw": "{\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 10,\n  \"messageContent\": \"This is real API content asd asd asd asd asd asd asd asd asd asd asd asd \",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
+        "raw": "{\n  \"inactivePeriodDays\": 60,\n  \"reminderIntervalDays\": 15,\n  \"messageContent\": \"This is an example, lorem ipsum dolor sit amet\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
         "form": []
       },
       "tests": []
@@ -66,7 +70,7 @@
       "name": "insert-message",
       "url": "http://localhost:8080/legacy-api?action=insert-message",
       "method": "POST",
-      "modified": "2022-02-14T15:09:58.578Z",
+      "modified": "2022-02-15T20:34:46.518Z",
       "created": "2022-02-14T11:13:04.743Z",
       "_id": "9b7b36e2-6deb-4293-9639-7edb9925942a",
       "params": [
@@ -74,7 +78,7 @@
       ],
       "body": {
         "type": "json",
-        "raw": "{\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 10,\n  \"messageContent\": \"Put some messages here\\nThis is another line\\nThis one is another\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
+        "raw": "{\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 15,\n  \"messageContent\": \"Put some messages here\\nThis is another line\\nThis one is another\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"inkamemang@kentut\"\n  ]\n}",
         "form": []
       },
       "tests": []
@@ -93,7 +97,7 @@
       "name": "select-messages",
       "url": "http://localhost:8080/legacy-api?action=select-messages",
       "method": "GET",
-      "modified": "2022-02-14T15:10:02.044Z",
+      "modified": "2022-02-15T12:00:33.833Z",
       "created": "2022-02-14T11:13:04.744Z",
       "_id": "4ef64380-fddb-49e9-b455-811759c0cad2",
       "params": [
@@ -137,7 +141,7 @@
       "name": "update-message",
       "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api?action=update-message",
       "method": "POST",
-      "modified": "2022-02-14T17:37:41.197Z",
+      "modified": "2022-02-15T20:32:12.344Z",
       "created": "2022-02-13T17:45:41.835Z",
       "_id": "a7fe4e1a-6deb-4506-bb15-54ed1c3c62ee",
       "params": [
@@ -145,7 +149,7 @@
       ],
       "body": {
         "type": "json",
-        "raw": "{\n  \"id\": \"c17079db-f058-43ca-a4a5-7d5a2c2abdd9\",\n  \"emailReceivers\": [\n    \"inkamemang@kentut\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again\",\n  \"inactivePeriodDays\": 30,\n  \"reminderIntervalDays\": 5,\n  \"isActive\": true\n}",
+        "raw": "{\n  \"id\": \"bce0a433-8eab-44fc-9377-c422bc4fb0a9\",\n  \"emailReceivers\": [\n    \"inkamemang@kentut\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": false\n}",
         "form": []
       },
       "tests": []
@@ -244,30 +248,6 @@
       "tests": []
     },
     {
-      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
-      "sortNum": 40000,
-      "headers": [
-        { "name": "Accept", "value": "*/*" },
-        {
-          "name": "User-Agent",
-          "value": "Thunder Client (https://www.thunderclient.com)"
-        },
-        { "name": "x-static-secret", "value": "STATIC_SECRET" }
-      ],
-      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
-      "name": "send-reminder-messages",
-      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=send-reminder-messages",
-      "method": "POST",
-      "modified": "2022-02-14T18:50:30.241Z",
-      "created": "2022-02-14T16:37:10.396Z",
-      "_id": "20615f8e-87d1-4728-b16d-a80112b18b3c",
-      "params": [
-        { "name": "action", "value": "send-reminder-messages", "isPath": false }
-      ],
-      "auth": { "type": "none" },
-      "tests": []
-    },
-    {
       "containerId": "3815a402-6496-4cbf-b7c0-92f4e49f48a5",
       "sortNum": 40000,
       "headers": [
@@ -283,39 +263,18 @@
       ],
       "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
       "name": "send-reminder-messages",
-      "url": "http://localhost:8080/legacy-api-scheduler?action=send-reminder-messages",
+      "url": "http://localhost:8080/legacy-api-scheduler",
       "method": "POST",
-      "modified": "2022-02-14T15:10:18.103Z",
+      "modified": "2022-02-15T20:37:20.559Z",
       "created": "2022-02-14T11:45:24.931Z",
       "_id": "222aba1e-5b75-441f-af75-2414485cb289",
-      "params": [
-        { "name": "action", "value": "send-reminder-messages", "isPath": false }
-      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"attributes\": {\n    \"action\": \"send-reminder-messages\"\n  }\n}",
+        "form": []
+      },
       "auth": { "type": "none" },
-      "tests": []
-    },
-    {
-      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
-      "sortNum": 50000,
-      "headers": [
-        { "name": "Accept", "value": "*/*" },
-        {
-          "name": "User-Agent",
-          "value": "Thunder Client (https://www.thunderclient.com)"
-        },
-        { "name": "x-static-secret", "value": "STATIC_SECRET" }
-      ],
-      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
-      "name": "send-testaments",
-      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=send-testaments",
-      "method": "POST",
-      "modified": "2022-02-14T18:52:25.997Z",
-      "created": "2022-02-14T16:37:41.228Z",
-      "_id": "b1a7395c-6a9e-4a9a-961d-23d7c2382e18",
-      "params": [
-        { "name": "action", "value": "send-testaments", "isPath": false }
-      ],
-      "auth": { "type": "bearer" },
       "tests": []
     },
     {
@@ -334,42 +293,17 @@
       ],
       "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
       "name": "send-testaments",
-      "url": "http://localhost:8080/legacy-api-scheduler?action=send-testaments",
+      "url": "http://localhost:8080/legacy-api-scheduler",
       "method": "POST",
-      "modified": "2022-02-14T15:10:25.174Z",
+      "modified": "2022-02-15T20:37:52.523Z",
       "created": "2022-02-14T14:42:36.174Z",
       "_id": "f165cdd0-0542-47b4-bd5c-efbaf6fd133e",
-      "params": [
-        { "name": "action", "value": "send-testaments", "isPath": false }
-      ],
-      "auth": { "type": "none" },
-      "tests": []
-    },
-    {
-      "containerId": "c129f588-e687-4678-9887-ad96237ecb51",
-      "sortNum": 60000,
-      "headers": [
-        { "name": "Accept", "value": "*/*" },
-        {
-          "name": "User-Agent",
-          "value": "Thunder Client (https://www.thunderclient.com)"
-        },
-        { "name": "x-static-secret", "value": "STATIC_SECRET" }
-      ],
-      "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
-      "name": "select-messages-need-reminding",
-      "url": "https://asia-southeast1-monarch-public.cloudfunctions.net/legacy-api-scheduler?action=select-messages-need-reminding",
-      "method": "POST",
-      "modified": "2022-02-14T18:52:24.757Z",
-      "created": "2022-02-14T17:28:37.562Z",
-      "_id": "db2565a2-e307-4f07-99ae-7c682fad21eb",
-      "params": [
-        {
-          "name": "action",
-          "value": "select-messages-need-reminding",
-          "isPath": false
-        }
-      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"attributes\": {\n    \"action\": \"send-testaments\"\n  }\n}",
+        "form": []
+      },
       "auth": { "type": "none" },
       "tests": []
     },
@@ -389,18 +323,17 @@
       ],
       "colId": "084499d6-74e6-4f5b-9548-a05bcfcb3d32",
       "name": "select-messages-need-reminding",
-      "url": "http://localhost:8080/legacy-api-scheduler?action=select-messages-need-reminding",
+      "url": "http://localhost:8080/legacy-api-scheduler",
       "method": "POST",
-      "modified": "2022-02-14T17:41:37.457Z",
+      "modified": "2022-02-15T20:38:21.002Z",
       "created": "2022-02-14T17:40:24.063Z",
       "_id": "dcf7814e-9f5d-4002-9fc3-9743fc67926d",
-      "params": [
-        {
-          "name": "action",
-          "value": "select-messages-need-reminding",
-          "isPath": false
-        }
-      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"attributes\": {\n    \"action\": \"select-messages-need-reminding\"\n  }\n}",
+        "form": []
+      },
       "auth": { "type": "none" },
       "tests": []
     }
