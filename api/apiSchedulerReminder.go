@@ -8,7 +8,6 @@ import (
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/mail"
-	"github.com/mailjet/mailjet-apiv3-go"
 )
 
 func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
@@ -19,7 +18,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		res.ResponseMsg = "Failed to select messages need reminding"
 		return res, err
 	}
-	mailjetMails := []mailjet.InfoMessagesV31{}
+	mailItems := []mail.MailItem{}
 	msgs := []*MessageData{}
 	currentEmailCreator := ""
 	for _, row := range rows {
@@ -55,31 +54,29 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 			fmt.Printf("Cannot generate reminder email: %v\n", err)
 			continue
 		}
-		mail := mailjet.InfoMessagesV31{
-			From: &mailjet.RecipientV31{
+		mail := mail.MailItem{
+			From: mail.MailAddress{
 				Email: "noreply@warisin.com",
 				Name:  "Warisin Service",
 			},
-			To: &mailjet.RecipientsV31{
-				mailjet.RecipientV31{
+			To: []mail.MailAddress{
+				{
 					Email: msg.EmailCreator,
 					Name:  param.FullName,
 				},
 			},
-			Subject:  param.Title,
-			TextPart: param.Title,
-			HTMLPart: htmlContent,
-			CustomID: "ProjectLegacyReminder",
+			Subject:     param.Title,
+			HtmlContent: htmlContent,
 		}
-		mailjetMails = append(mailjetMails, mail)
+		mailItems = append(mailItems, mail)
 	}
-	if len(mailjetMails) == 0 {
+	if len(mailItems) == 0 {
 		res.StatusCode = http.StatusOK
 		res.ResponseMsg = "No reminder message is sent this time"
 		return
 	}
-	smResList, err := mail.SendEmails(os.Getenv("MAILJET_PUBLIC_KEY"),
-		os.Getenv("MAILJET_PRIVATE_KEY"), mailjetMails)
+	eClient := mail.Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
+	smResList, err := eClient.SendEmails(mailItems)
 	if err != nil {
 		res.StatusCode = http.StatusInternalServerError
 		res.ResponseMsg = "Failed to send reminder emails: " + err.Error()
