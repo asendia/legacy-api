@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -11,7 +12,7 @@ import (
 func TestSendgrid(t *testing.T) {
 	s := Sendgrid{PrivateKey: os.Getenv("SENDGRID_PRIVATE_KEY")}
 	mails := []MailItem{}
-	rcvrs := []string{"swiftyoshioka@gmail.com", "incorrect-email-format", "test@warisin.com"}
+	rcvrs := []string{"swiftyoshioka@gmail.com", "shouldbeinvalid", "test@warisin.com"}
 	for id, rcvr := range rcvrs {
 		param := ReminderEmailParams{
 			Title:      "Reminder to extend the delivery schedule of warisin.com testament",
@@ -41,5 +42,15 @@ func TestSendgrid(t *testing.T) {
 			HtmlContent: htmlContent,
 		})
 	}
-	s.SendEmails(mails)
+	res, err := s.SendEmails(mails)
+	if errors.Is(err, ErrSendgridNoPrivateKey) {
+		t.Logf("Please specify SENDGRID_PRIVATE_KEY: %+v", err)
+		return
+	}
+	if err != nil {
+		t.Fatalf("Sendgrid error %+v\n", err)
+	}
+	if res[1].Err == nil {
+		t.Fatal("Email should be invalid")
+	}
 }
