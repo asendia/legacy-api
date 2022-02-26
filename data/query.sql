@@ -20,6 +20,27 @@ INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
 RETURNING
   *;
 
+-- name: InsertMessageIfLessThanThree :one
+INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
+  reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
+SELECT
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+  CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $4)
+WHERE (
+  SELECT
+    count(*)
+  FROM
+    messages
+  WHERE
+    messages.email_creator = $6) < 3
+RETURNING
+  *;
+
 -- name: InsertMessagesEmailReceiver :one
 INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
   VALUES ($1, $2, $3)

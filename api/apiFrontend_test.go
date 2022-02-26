@@ -65,7 +65,7 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 	messageCtr := 0
 	rows := []MessageData{}
 	a := APIForFrontend{Context: ctx, Tx: tx}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 9; i++ {
 		msg := generateMessageTemplate()
 		msg.EmailCreator = rdstr + "-" + msg.EmailCreator
 		if i%3 == 0 {

@@ -6,6 +6,7 @@
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
 - [gcloud cli](https://cloud.google.com/sdk/docs/install) (Optional, for deploying the api to Google Cloud Platform)
+- [cloudsql proxy](https://cloud.google.com/sql/docs/mysql/connect-admin-proxy) (Optional, proxy to connect to cloud sql)
 
 ## Development
 ### Database setup
@@ -17,6 +18,7 @@ After installing go & postgresql
 ### Testing
 This is integration test, you will need to run the database first before running the test
 ```sh
+cp .env-test-template.yaml .env-test.yaml
 go test ./...
 ```
 
@@ -48,9 +50,13 @@ echo -n "PUT_THE_STATIC_SECRET_HERE" | \
 echo -n "PUT_THE_ENCRYPTION_KEY_HERE" | \
   gcloud secrets create "encryption_key" --replication-policy "automatic" --data-file -
 
-# 32 characters length for AES encryption
+# To send emails
 echo -n "PUT_THE_MAILJET_PRIVATE_KEY_HERE" | \
   gcloud secrets create "mailjet_private_key" --replication-policy "automatic" --data-file -
+
+# To send emails
+echo -n "PUT_THE_SENDGRID_PRIVATE_KEY_HERE" | \
+  gcloud secrets create "sendgrid_private_key" --replication-policy "automatic" --data-file -
 ```
 2. Give the secret manager read access to your project service account. You can actually see the exact command when you deploy the function using commands in the next step
 ```sh
@@ -58,8 +64,10 @@ gcloud projects add-iam-policy-binding [YOUR_GCLOUD_PROJECT_NAME] --member='serv
 ```
 3. Prepare the DB
 ```
+# Active cloud sql proxy
+cloud_sql_proxy -instances=[PROJECT_ID]:asia-southeast1:[CLOUD_SQL_INSTANCE]=tcp:127.0.0.1:5678
 # Connect to db
-gcloud sql connect project-legacy-db
+psql -h 127.0.0.1 -p 5678 -U postgres
 # Run these sql queries in this order
 # 1. seed.sql - edit the db password here
 # Switch to project_legacy database
@@ -110,6 +118,6 @@ gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
   --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
   --update-labels service=legacy --max-instances 100 \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_PRIVATE_KEY=mailjet_private_key:latest \
+  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_PRIVATE_KEY=mailjet_private_key:latest,SENDGRID_PRIVATE_KEY=sendgrid_private_key:latest \
   --env-vars-file .env-prod.yaml
 ```

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/mail"
@@ -13,12 +12,6 @@ import (
 )
 
 func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParamInsertMessage) (res APIResponse, err error) {
-	if len(param.EmailReceivers) > 3 || len(param.EmailReceivers) == 0 {
-		err = errors.New("Receiver emails should be 1-3")
-		res.StatusCode = http.StatusBadRequest
-		res.ResponseMsg = err.Error()
-		return res, err
-	}
 	extensionSecret, err := secure.GenerateRandomString(ExtensionSecretLength)
 	if err != nil {
 		res.StatusCode = http.StatusInternalServerError
@@ -35,23 +28,13 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 		res.StatusCode = http.StatusInternalServerError
 		return res, err
 	}
-	msgRows, err := queries.SelectMessagesByEmailCreator(a.Context, jwtRes.Email)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		return res, err
-	}
-	if len(msgRows)+len(param.EmailReceivers) > 10 {
-		err = errors.New("Current maximum number of email receivers is 10")
-		res.StatusCode = http.StatusBadRequest
-		res.ResponseMsg = err.Error()
-		return res, err
-	}
-	row, err := queries.InsertMessage(a.Context, data.InsertMessageParams{
+	row, err := queries.InsertMessageIfLessThanThree(a.Context, data.InsertMessageIfLessThanThreeParams{
 		EmailCreator:         jwtRes.Email,
 		ContentEncrypted:     encrypted,
 		InactivePeriodDays:   param.InactivePeriodDays,
 		ReminderIntervalDays: param.ReminderIntervalDays,
 		ExtensionSecret:      extensionSecret,
+		EmailCreator_2:       jwtRes.Email,
 	})
 	if err != nil {
 		res.StatusCode = http.StatusBadRequest

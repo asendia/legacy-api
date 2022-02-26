@@ -112,6 +112,63 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 	return i, err
 }
 
+const insertMessageIfLessThanThree = `-- name: InsertMessageIfLessThanThree :one
+INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
+  reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
+SELECT
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+  CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $4)
+WHERE (
+  SELECT
+    count(*)
+  FROM
+    messages
+  WHERE
+    messages.email_creator = $6) < 3
+RETURNING
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
+`
+
+type InsertMessageIfLessThanThreeParams struct {
+	EmailCreator         string
+	ContentEncrypted     string
+	InactivePeriodDays   int32
+	ReminderIntervalDays int32
+	ExtensionSecret      string
+	EmailCreator_2       string
+}
+
+func (q *Queries) InsertMessageIfLessThanThree(ctx context.Context, arg InsertMessageIfLessThanThreeParams) (Message, error) {
+	row := q.db.QueryRow(ctx, insertMessageIfLessThanThree,
+		arg.EmailCreator,
+		arg.ContentEncrypted,
+		arg.InactivePeriodDays,
+		arg.ReminderIntervalDays,
+		arg.ExtensionSecret,
+		arg.EmailCreator_2,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.EmailCreator,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
+		&i.InactivePeriodDays,
+		&i.ReminderIntervalDays,
+		&i.IsActive,
+		&i.ExtensionSecret,
+		&i.InactiveAt,
+		&i.NextReminderAt,
+		&i.SentCounter,
+	)
+	return i, err
+}
+
 const insertMessagesEmailReceiver = `-- name: InsertMessagesEmailReceiver :one
 INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
   VALUES ($1, $2, $3)

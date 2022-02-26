@@ -11,6 +11,20 @@ import (
 
 const ExtensionSecretLength = 69
 
+type MessageDataV2 struct {
+	ID                   int       `json:"id"`
+	CreatedAt            time.Time `json:"createdAt"`
+	EmailCreator         string    `json:"emailCreator"`
+	EmailReceivers       []string  `json:"emailReceivers"`
+	MessageContent       string    `json:"messageContent"`
+	InactivePeriodDays   int       `json:"inactivePeriodDays"`
+	ReminderIntervalDays int       `json:"reminderIntervalDays"`
+	IsActive             bool      `json:"isActive"`
+	ExtensionSecret      string    `json:"extension_secret"`
+	InactiveAt           time.Time `json:"inactiveAt"`
+	NextReminderAt       time.Time `json:"nextReminderAt"`
+	SentCounter          int       `json:"sentCounter"`
+}
 type MessageData struct {
 	ID                   uuid.UUID `json:"id"`
 	CreatedAt            time.Time `json:"createdAt"`

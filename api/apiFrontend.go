@@ -95,6 +95,9 @@ func ParseReqDeleteMessage(r *http.Request) (p APIParamDeleteMessageByID, err er
 }
 
 func validateEmails(emails []string) error {
+	if len(emails) > 3 || len(emails) == 0 {
+		return errors.New("Receiver emails should be 1-3")
+	}
 	_, err := mail.ParseAddressList(strings.Join(emails, ","))
 	return err
 }
