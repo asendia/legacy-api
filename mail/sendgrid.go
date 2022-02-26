@@ -15,8 +15,16 @@ type Sendgrid struct {
 	PrivateKey string
 }
 
+func (m *Sendgrid) GetVendorID() string {
+	return "SENDGRID"
+}
+
+func (s *Sendgrid) HasPrivateKeys() bool {
+	return s.PrivateKey != ""
+}
+
 func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
-	if s.PrivateKey == "" {
+	if !s.HasPrivateKeys() {
 		return res, ErrSendgridNoPrivateKey
 	}
 	sendgridMail := mail.NewV3Mail()
@@ -87,7 +95,12 @@ func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criti
 			if errMap[pID][toID] != "" {
 				err = errors.New(errMap[pID][toID])
 			}
-			res = append(res, SendEmailsResponse{Err: err, Email: t.Email})
+			if pID >= len(res) {
+				res = append(res, SendEmailsResponse{
+					Err: err, Emails: []string{t.Email}, VendorID: s.GetVendorID()})
+			} else {
+				res[pID].Emails = append(res[pID].Emails, t.Email)
+			}
 		}
 	}
 	return res, err

@@ -8,13 +8,13 @@ import (
 	"github.com/asendia/legacy-api/simple"
 )
 
-func TestSendEmails(t *testing.T) {
+func TestMailjetSingleEmailSingleTo(t *testing.T) {
 	param := ReminderEmailParams{
-		Title:          "Reminder to extend the delivery schedule of warisin.com testament",
-		FullName:       "Warisin Team",
-		InactiveAt:     simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
-		EmailReceivers: []string{"test@warisin.com", "noreply@warisin.com"},
-		ExtensionURL:   "https://warisin.com/extend?id=some-id&secret=some-secret"}
+		Title:              "Reminder to extend the delivery schedule of warisin.com testament",
+		FullName:           "Warisin Team",
+		InactiveAt:         simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
+		TestamentReceivers: []string{"test@warisin.com", "noreply@warisin.com"},
+		ExtensionURL:       "https://warisin.com/extend?id=some-id&secret=some-secret"}
 	htmlContent, err := GenerateReminderEmail(param)
 	if err != nil {
 		t.Fatalf("Cannot generate email from template: %v", err)
@@ -27,7 +27,7 @@ func TestSendEmails(t *testing.T) {
 			},
 			To: []MailAddress{
 				{
-					Email: "asendia@warisin.com",
+					Email: "test@warisin.com",
 					Name:  "Warisin User",
 				},
 			},

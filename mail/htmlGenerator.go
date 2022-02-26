@@ -8,11 +8,11 @@ import (
 )
 
 type ReminderEmailParams struct {
-	Title          string
-	FullName       string
-	InactiveAt     string
-	EmailReceivers []string
-	ExtensionURL   string
+	Title              string
+	FullName           string
+	InactiveAt         string
+	TestamentReceivers []string
+	ExtensionURL       string
 }
 
 func GenerateReminderEmail(param ReminderEmailParams) (string, error) {

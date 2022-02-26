@@ -17,6 +17,7 @@ After installing go & postgresql
 ### Testing
 This is integration test, you will need to run the database first before running the test
 ```sh
+cp .env-test-template.yaml .env-test.yaml
 go test ./...
 ```
 

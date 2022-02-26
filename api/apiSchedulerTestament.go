@@ -60,13 +60,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		res.ResponseMsg = "No testament message is sent this time"
 		return
 	}
-	eClient := mail.Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
-	smResList, err := eClient.SendEmails(mailItems)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		res.ResponseMsg = "Failed to send reminder emails: " + err.Error()
-		return res, err
-	}
+	smResList := mail.SendEmails(mailItems)
 	for id, smRes := range smResList {
 		if smRes.Err == nil {
 			_, err := queries.UpdateMessageAfterSendingTestament(a.Context, rows[id].MsgID)

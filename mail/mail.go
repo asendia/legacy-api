@@ -1,5 +1,12 @@
 package mail
 
+import (
+	"errors"
+	"fmt"
+	"math"
+	"os"
+)
+
 type MailAddress struct {
 	Name  string
 	Email string
@@ -13,5 +20,79 @@ type MailItem struct {
 }
 
 type Mail interface {
-	SendEmail(mails []MailItem) (res []SendEmailsResponse, criticalError error)
+	SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error)
+	HasPrivateKeys() bool
+	GetVendorID() string
+}
+
+type SendEmailsResponse struct {
+	Err      error
+	Emails   []string
+	VendorID string
+}
+
+type SendMailConfig struct {
+	Vendors []SendMailVendorConfig
+}
+type SendMailVendorConfig struct {
+	Vendor     Mail
+	DailyLimit int
+}
+
+// Send emails using multiple vendors
+func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
+	vendorMailjet := Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
+	vendorSendgrid := Sendgrid{PrivateKey: os.Getenv("SENDGRID_PRIVATE_KEY")}
+	cfg := SendMailConfig{
+		Vendors: []SendMailVendorConfig{
+			{
+				Vendor:     &vendorMailjet,
+				DailyLimit: 200,
+			},
+			{
+				Vendor:     &vendorSendgrid,
+				DailyLimit: 100,
+			},
+		},
+	}
+	totalDailyLimit := 0
+	for _, v := range cfg.Vendors {
+		if v.Vendor.HasPrivateKeys() {
+			totalDailyLimit += v.DailyLimit
+		}
+	}
+	currentMailIndex := 0
+	// Distribute emails across vendors based on DailyLimit
+	for id, v := range cfg.Vendors {
+		if !v.Vendor.HasPrivateKeys() {
+			continue
+		}
+		// Break if there is no more email to send
+		if currentMailIndex >= len(mails) {
+			break
+		}
+		totalMailsForThisVendor := int(math.Floor(float64(v.DailyLimit) / float64(totalDailyLimit) * float64(len(mails))))
+		targetMailIndex := currentMailIndex + totalMailsForThisVendor
+		// If target exceeds the emails length, or it is the last vendor
+		if targetMailIndex > len(mails) || id+1 == len(cfg.Vendors) {
+			targetMailIndex = len(mails)
+		}
+		emailsUsingThisVendor := mails[currentMailIndex:targetMailIndex]
+		r, cErr := v.Vendor.SendEmails(emailsUsingThisVendor)
+		if cErr != nil {
+			for _, email := range emailsUsingThisVendor {
+				emailTos := []string{}
+				for _, mt := range email.To {
+					emailTos = append(emailTos, mt.Email)
+				}
+				res = append(res, SendEmailsResponse{
+					Err:    errors.New(fmt.Sprintf("Critical error from vendor id: %d", id)),
+					Emails: emailTos,
+				})
+			}
+		}
+		res = append(res, r...)
+		currentMailIndex = targetMailIndex
+	}
+	return res
 }

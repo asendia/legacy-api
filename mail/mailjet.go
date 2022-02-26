@@ -12,8 +12,16 @@ type Mailjet struct {
 	PrivateKey string
 }
 
+func (m *Mailjet) GetVendorID() string {
+	return "MAILJET"
+}
+
+func (m *Mailjet) HasPrivateKeys() bool {
+	return m.PublicKey != "" && m.PrivateKey != ""
+}
+
 func (m *Mailjet) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
-	if m.PublicKey == "" || m.PrivateKey == "" {
+	if !m.HasPrivateKeys() {
 		return res, ErrMailjetNoAPIKeys
 	}
 	client := mailjet.NewMailjetClient(m.PublicKey, m.PrivateKey)
@@ -28,9 +36,11 @@ func (m *Mailjet) SendEmails(mails []MailItem) (res []SendEmailsResponse, critic
 		return res, criticalError
 	}
 	for id, mail := range mails {
-		emailRes := SendEmailsResponse{}
-		if mail.To != nil && len(mail.To) > 0 {
-			emailRes.Email = (mail.To)[0].Email
+		emailRes := SendEmailsResponse{VendorID: m.GetVendorID()}
+		if mail.To != nil {
+			for _, m := range mail.To {
+				emailRes.Emails = append(emailRes.Emails, m.Email)
+			}
 		}
 		isError := isErrFeedbacklist &&
 			len(errFeedbackList.Messages) > id &&
@@ -65,11 +75,6 @@ func convertMailItemsToMailjet(mails []MailItem) (mailjetMails []mailjet.InfoMes
 		})
 	}
 	return
-}
-
-type SendEmailsResponse struct {
-	Err   error
-	Email string
 }
 
 var ErrMailjetNoAPIKeys = errors.New("Mailjet requires publicKey & privateKey, set in the " +

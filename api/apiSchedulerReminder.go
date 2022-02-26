@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/mail"
@@ -43,11 +42,11 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 	}
 	for _, msg := range msgs {
 		param := mail.ReminderEmailParams{
-			Title:          "Reminder to extend your warisin.com message",
-			FullName:       "Warisin User",
-			InactiveAt:     msg.InactiveAt.Local().Format("2006-01-02"),
-			EmailReceivers: msg.EmailReceivers,
-			ExtensionURL:   fmt.Sprintf("https://warisin.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
+			Title:              "Reminder to extend your warisin.com message",
+			FullName:           "Warisin User",
+			InactiveAt:         msg.InactiveAt.Local().Format("2006-01-02"),
+			TestamentReceivers: msg.EmailReceivers,
+			ExtensionURL:       fmt.Sprintf("https://warisin.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
 		}
 		htmlContent, err := mail.GenerateReminderEmail(param)
 		if err != nil {
@@ -75,13 +74,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		res.ResponseMsg = "No reminder message is sent this time"
 		return
 	}
-	eClient := mail.Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
-	smResList, err := eClient.SendEmails(mailItems)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		res.ResponseMsg = "Failed to send reminder emails: " + err.Error()
-		return res, err
-	}
+	smResList := mail.SendEmails(mailItems)
 	for id, smRes := range smResList {
 		if smRes.Err == nil {
 			_, err := queries.UpdateMessageAfterSendingReminder(a.Context, msgs[id].ID)
