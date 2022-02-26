@@ -7,13 +7,26 @@ import (
 	mailjet "github.com/mailjet/mailjet-apiv3-go"
 )
 
-func SendEmails(publicKey string, privateKey string, mails []mailjet.InfoMessagesV31) (res []SendEmailsResponse, criticalError error) {
-	if publicKey == "" || privateKey == "" {
+type Mailjet struct {
+	PublicKey  string
+	PrivateKey string
+}
+
+func (m *Mailjet) GetVendorID() string {
+	return "MAILJET"
+}
+
+func (m *Mailjet) HasPrivateKeys() bool {
+	return m.PublicKey != "" && m.PrivateKey != ""
+}
+
+func (m *Mailjet) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
+	if !m.HasPrivateKeys() {
 		return res, ErrMailjetNoAPIKeys
 	}
-	m := mailjet.NewMailjetClient(publicKey, privateKey)
-	messages := mailjet.MessagesV31{Info: mails}
-	_, criticalError = m.SendMailV31(&messages)
+	client := mailjet.NewMailjetClient(m.PublicKey, m.PrivateKey)
+	messages := mailjet.MessagesV31{Info: convertMailItemsToMailjet(mails)}
+	_, criticalError = client.SendMailV31(&messages)
 	errFeedbackList := &mailjet.APIFeedbackErrorsV31{}
 	isErrFeedbacklist := errors.As(criticalError, &errFeedbackList)
 	if isErrFeedbacklist {
@@ -23,9 +36,11 @@ func SendEmails(publicKey string, privateKey string, mails []mailjet.InfoMessage
 		return res, criticalError
 	}
 	for id, mail := range mails {
-		emailRes := SendEmailsResponse{}
-		if mail.To != nil && len(*mail.To) > 0 {
-			emailRes.Email = (*mail.To)[0].Email
+		emailRes := SendEmailsResponse{VendorID: m.GetVendorID()}
+		if mail.To != nil {
+			for _, m := range mail.To {
+				emailRes.Emails = append(emailRes.Emails, m.Email)
+			}
 		}
 		isError := isErrFeedbacklist &&
 			len(errFeedbackList.Messages) > id &&
@@ -39,9 +54,27 @@ func SendEmails(publicKey string, privateKey string, mails []mailjet.InfoMessage
 	return res, nil
 }
 
-type SendEmailsResponse struct {
-	Err   error
-	Email string
+func convertMailItemsToMailjet(mails []MailItem) (mailjetMails []mailjet.InfoMessagesV31) {
+	for _, m := range mails {
+		mailjetTo := mailjet.RecipientsV31{}
+		for _, t := range m.To {
+			mailjetTo = append(mailjetTo, mailjet.RecipientV31{
+				Email: t.Email,
+				Name:  t.Name,
+			})
+		}
+		mailjetMails = append(mailjetMails, mailjet.InfoMessagesV31{
+			From: &mailjet.RecipientV31{
+				Email: m.From.Email,
+				Name:  m.From.Name,
+			},
+			To:       &mailjetTo,
+			Subject:  m.Subject,
+			HTMLPart: m.HtmlContent,
+			CustomID: "legacy-reminder",
+		})
+	}
+	return
 }
 
 var ErrMailjetNoAPIKeys = errors.New("Mailjet requires publicKey & privateKey, set in the " +

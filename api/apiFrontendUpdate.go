@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"os"
 
@@ -10,12 +9,6 @@ import (
 )
 
 func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParamUpdateMessage) (res APIResponse, err error) {
-	if len(param.EmailReceivers) > 3 || len(param.EmailReceivers) == 0 {
-		err = errors.New("Receiver emails should be 1-3")
-		res.StatusCode = http.StatusBadRequest
-		res.ResponseMsg = err.Error()
-		return res, err
-	}
 	queries := data.New(a.Tx)
 	// Refresh extension secret on every update
 	extensionSecret, err := secure.GenerateRandomString(ExtensionSecretLength)

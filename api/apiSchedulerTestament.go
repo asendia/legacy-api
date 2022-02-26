@@ -10,7 +10,6 @@ import (
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/mail"
 	"github.com/google/uuid"
-	"github.com/mailjet/mailjet-apiv3-go"
 )
 
 // Machine facing queries
@@ -22,7 +21,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		res.ResponseMsg = "Failed to select inactive messages"
 		return
 	}
-	mailjetMails := []mailjet.InfoMessagesV31{}
+	mailItems := []mail.MailItem{}
 	for _, row := range rows {
 		msgContent, err := DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
 		if err != nil {
@@ -41,34 +40,27 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 			fmt.Printf("Failed generating testament email: %v\n", err)
 			continue
 		}
-		mailjetMails = append(mailjetMails, mailjet.InfoMessagesV31{
-			From: &mailjet.RecipientV31{
+		mailItems = append(mailItems, mail.MailItem{
+			From: mail.MailAddress{
 				Email: "noreply@warisin.com",
 				Name:  "Warisin Service",
 			},
-			To: &mailjet.RecipientsV31{
-				mailjet.RecipientV31{
+			To: []mail.MailAddress{
+				{
 					Email: row.RcvEmailReceiver,
 					Name:  "Warisin User",
 				},
 			},
-			Subject:  msgParam.Title,
-			HTMLPart: mmsgHTML,
-			CustomID: "ProjectLegacyTestament",
+			Subject:     msgParam.Title,
+			HtmlContent: mmsgHTML,
 		})
 	}
-	if len(mailjetMails) == 0 {
+	if len(mailItems) == 0 {
 		res.StatusCode = http.StatusOK
 		res.ResponseMsg = "No testament message is sent this time"
 		return
 	}
-	smResList, err := mail.SendEmails(os.Getenv("MAILJET_PUBLIC_KEY"),
-		os.Getenv("MAILJET_PRIVATE_KEY"), mailjetMails)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		res.ResponseMsg = "Failed to send reminder emails: " + err.Error()
-		return res, err
-	}
+	smResList := mail.SendEmails(mailItems)
 	for id, smRes := range smResList {
 		if smRes.Err == nil {
 			_, err := queries.UpdateMessageAfterSendingTestament(a.Context, rows[id].MsgID)

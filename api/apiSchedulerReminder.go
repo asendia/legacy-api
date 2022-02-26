@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/mail"
-	"github.com/mailjet/mailjet-apiv3-go"
 )
 
 func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
@@ -19,7 +17,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		res.ResponseMsg = "Failed to select messages need reminding"
 		return res, err
 	}
-	mailjetMails := []mailjet.InfoMessagesV31{}
+	mailItems := []mail.MailItem{}
 	msgs := []*MessageData{}
 	currentEmailCreator := ""
 	for _, row := range rows {
@@ -44,47 +42,39 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 	}
 	for _, msg := range msgs {
 		param := mail.ReminderEmailParams{
-			Title:          "Reminder to extend your warisin.com message",
-			FullName:       "Warisin User",
-			InactiveAt:     msg.InactiveAt.Local().Format("2006-01-02"),
-			EmailReceivers: msg.EmailReceivers,
-			ExtensionURL:   fmt.Sprintf("https://warisin.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
+			Title:              "Reminder to extend your warisin.com message",
+			FullName:           "Warisin User",
+			InactiveAt:         msg.InactiveAt.Local().Format("2006-01-02"),
+			TestamentReceivers: msg.EmailReceivers,
+			ExtensionURL:       fmt.Sprintf("https://warisin.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
 		}
 		htmlContent, err := mail.GenerateReminderEmail(param)
 		if err != nil {
 			fmt.Printf("Cannot generate reminder email: %v\n", err)
 			continue
 		}
-		mail := mailjet.InfoMessagesV31{
-			From: &mailjet.RecipientV31{
+		mail := mail.MailItem{
+			From: mail.MailAddress{
 				Email: "noreply@warisin.com",
 				Name:  "Warisin Service",
 			},
-			To: &mailjet.RecipientsV31{
-				mailjet.RecipientV31{
+			To: []mail.MailAddress{
+				{
 					Email: msg.EmailCreator,
 					Name:  param.FullName,
 				},
 			},
-			Subject:  param.Title,
-			TextPart: param.Title,
-			HTMLPart: htmlContent,
-			CustomID: "ProjectLegacyReminder",
+			Subject:     param.Title,
+			HtmlContent: htmlContent,
 		}
-		mailjetMails = append(mailjetMails, mail)
+		mailItems = append(mailItems, mail)
 	}
-	if len(mailjetMails) == 0 {
+	if len(mailItems) == 0 {
 		res.StatusCode = http.StatusOK
 		res.ResponseMsg = "No reminder message is sent this time"
 		return
 	}
-	smResList, err := mail.SendEmails(os.Getenv("MAILJET_PUBLIC_KEY"),
-		os.Getenv("MAILJET_PRIVATE_KEY"), mailjetMails)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		res.ResponseMsg = "Failed to send reminder emails: " + err.Error()
-		return res, err
-	}
+	smResList := mail.SendEmails(mailItems)
 	for id, smRes := range smResList {
 		if smRes.Err == nil {
 			_, err := queries.UpdateMessageAfterSendingReminder(a.Context, msgs[id].ID)

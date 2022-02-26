@@ -10,11 +10,11 @@ import (
 
 func TestGenerateReminderEmail(t *testing.T) {
 	param := ReminderEmailParams{
-		Title:          "Reminder to extend the delivery schedule of warisin.com testament",
-		FullName:       "Asendia Mayco",
-		InactiveAt:     simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("YYYY-MM-DD"),
-		EmailReceivers: []string{"a@b.com", "c@d.com", "someone@somewhere.sometld"},
-		ExtensionURL:   "https://warisin.com/extend?id=some-id&secret=some-secret",
+		Title:              "Reminder to extend the delivery schedule of warisin.com testament",
+		FullName:           "Asendia Mayco",
+		InactiveAt:         simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("YYYY-MM-DD"),
+		TestamentReceivers: []string{"a@b.com", "c@d.com", "someone@somewhere.sometld"},
+		ExtensionURL:       "https://warisin.com/extend?id=some-id&secret=some-secret",
 	}
 	content, err := GenerateReminderEmail(param)
 	if err != nil {

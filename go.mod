@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/joho/godotenv v1.4.0
 	github.com/mailjet/mailjet-apiv3-go v0.0.0-20201009050126-c24bc15a9394
+	github.com/sendgrid/sendgrid-go v3.11.0+incompatible
 )
 
 require (
@@ -19,6 +20,8 @@ require (
 	github.com/jackc/pgtype v1.9.1 // indirect
 	github.com/jackc/puddle v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sendgrid/rest v2.6.8+incompatible // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
+	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420 // indirect
 	golang.org/x/text v0.3.6 // indirect
 )
