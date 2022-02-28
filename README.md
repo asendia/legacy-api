@@ -6,7 +6,7 @@
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
 - [gcloud cli](https://cloud.google.com/sdk/docs/install) (Optional, for deploying the api to Google Cloud Platform)
-- [cloudsql proxy](https://cloud.google.com/sql/docs/mysql/connect-admin-proxy) (Optional, proxy to connect to cloud sql)
+- [cloud_sql_proxy](https://cloud.google.com/sql/docs/mysql/connect-admin-proxy) (Optional, proxy to connect to cloud sql)
 
 ## Development
 ### Database setup
@@ -63,16 +63,33 @@ echo -n "PUT_THE_SENDGRID_PRIVATE_KEY_HERE" | \
 gcloud projects add-iam-policy-binding [YOUR_GCLOUD_PROJECT_NAME] --member='serviceAccount:[YOUR_GCLOUD_PROJECT_NAME]@appspot.gserviceaccount.com' --role='roles/secretmanager.secretAccessor'
 ```
 3. Prepare the DB
-```
-# Active cloud sql proxy
-cloud_sql_proxy -instances=[PROJECT_ID]:asia-southeast1:[CLOUD_SQL_INSTANCE]=tcp:127.0.0.1:5678
+```sh
+# Create an sql instance
+gcloud sql instances create project-legacy-db \
+  --database-version=POSTGRES_14 \
+  --tier=db-f1-micro \
+  --region=asia-southeast1 \
+  --storage-size=10
+# Set the root password
+gcloud sql users set-password postgres \
+  --instance=project-legacy-db \
+  --password=[DB_ROOT_PASSWORD]
+# Active cloud sql proxy, get the connection name from Google Cloud dashboard
+# It looks like this: project-name:asia-southeast1:project-legacy-db
+cloud_sql_proxy -instances=[CONNECTION NAME]=tcp:127.0.0.1:5678
 # Connect to db
 psql -h 127.0.0.1 -p 5678 -U postgres
-# Run these sql queries in this order
-# 1. seed.sql - edit the db password here
+
+##################################################################
+# Copy paste the query in data/seed.sql, edit the PASSWORD field #
+##################################################################
+
 # Switch to project_legacy database
 \c project_legacy
-# 2. schema.sql
+
+###########################################
+# Copy paste the query in data/schema.sql #
+###########################################
 ```
 4. Create the production config file
 ```sh
