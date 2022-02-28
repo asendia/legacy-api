@@ -35,7 +35,7 @@ func TestMailjetSingleEmailSingleTo(t *testing.T) {
 			HtmlContent: htmlContent,
 		},
 	}
-	m := Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
+	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"), SecretKey: os.Getenv("MAILJET_SECRET_KEY")}
 	res, err := m.SendEmails(mails)
 	if errors.Is(err, ErrMailjetNoAPIKeys) {
 		t.Log(err)

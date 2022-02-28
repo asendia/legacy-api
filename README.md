@@ -51,12 +51,16 @@ echo -n "PUT_THE_ENCRYPTION_KEY_HERE" | \
   gcloud secrets create "encryption_key" --replication-policy "automatic" --data-file -
 
 # To send emails
-echo -n "PUT_THE_MAILJET_PRIVATE_KEY_HERE" | \
-  gcloud secrets create "mailjet_private_key" --replication-policy "automatic" --data-file -
+echo -n "PUT_THE_MAILJET_API_KEY_HERE" | \
+  gcloud secrets create "mailjet_api_key" --replication-policy "automatic" --data-file -
 
 # To send emails
-echo -n "PUT_THE_SENDGRID_PRIVATE_KEY_HERE" | \
-  gcloud secrets create "sendgrid_private_key" --replication-policy "automatic" --data-file -
+echo -n "PUT_THE_MAILJET_SECRET_KEY_HERE" | \
+  gcloud secrets create "mailjet_secret_key" --replication-policy "automatic" --data-file -
+
+# To send emails
+echo -n "PUT_THE_SENDGRID_API_KEY_HERE" | \
+  gcloud secrets create "sendgrid_api_key" --replication-policy "automatic" --data-file -
 ```
 2. Give the secret manager read access to your project service account. You can actually see the exact command when you deploy the function using commands in the next step
 ```sh
@@ -135,6 +139,6 @@ gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
   --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
   --update-labels service=legacy --max-instances 100 \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_PRIVATE_KEY=mailjet_private_key:latest,SENDGRID_PRIVATE_KEY=sendgrid_private_key:latest \
+  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
   --env-vars-file .env-prod.yaml
 ```
