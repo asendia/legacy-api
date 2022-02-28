@@ -21,6 +21,7 @@ This is integration test, you will need to run the database first before running
 cp .env-test-template.yaml .env-test.yaml
 go test ./...
 ```
+Why do I use template config? Because I put secrets in my `.env-test.yaml` & I don't want to accidentally commit it. Please let me know how to do it better.
 
 ### Running the app in localhost
 From the root directory of this repo
