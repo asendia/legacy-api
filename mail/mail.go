@@ -21,7 +21,7 @@ type MailItem struct {
 
 type Mail interface {
 	SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error)
-	HasPrivateKeys() bool
+	HasAPIKey() bool
 	GetVendorID() string
 }
 
@@ -41,8 +41,8 @@ type SendMailVendorConfig struct {
 
 // Send emails using multiple vendors
 func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
-	vendorMailjet := Mailjet{PublicKey: os.Getenv("MAILJET_PUBLIC_KEY"), PrivateKey: os.Getenv("MAILJET_PRIVATE_KEY")}
-	vendorSendgrid := Sendgrid{PrivateKey: os.Getenv("SENDGRID_PRIVATE_KEY")}
+	vendorMailjet := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"), SecretKey: os.Getenv("MAILJET_SECRET_KEY")}
+	vendorSendgrid := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY")}
 	cfg := SendMailConfig{
 		Vendors: []SendMailVendorConfig{
 			{
@@ -57,14 +57,14 @@ func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
 	}
 	totalDailyLimit := 0
 	for _, v := range cfg.Vendors {
-		if v.Vendor.HasPrivateKeys() {
+		if v.Vendor.HasAPIKey() {
 			totalDailyLimit += v.DailyLimit
 		}
 	}
 	currentMailIndex := 0
 	// Distribute emails across vendors based on DailyLimit
 	for id, v := range cfg.Vendors {
-		if !v.Vendor.HasPrivateKeys() {
+		if !v.Vendor.HasAPIKey() {
 			continue
 		}
 		// Break if there is no more email to send

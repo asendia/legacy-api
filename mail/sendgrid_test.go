@@ -10,7 +10,7 @@ import (
 )
 
 func TestSendgridMultipleEmailsMultipleTos(t *testing.T) {
-	s := Sendgrid{PrivateKey: os.Getenv("SENDGRID_PRIVATE_KEY")}
+	s := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY")}
 	mails := []MailItem{}
 	toList := []string{"asendia@warisin.com", "should@beinvalid", "test@warisin.com"}
 	for id, to := range toList {
@@ -44,7 +44,7 @@ func TestSendgridMultipleEmailsMultipleTos(t *testing.T) {
 	}
 	res, err := s.SendEmails(mails)
 	if errors.Is(err, ErrSendgridNoPrivateKey) {
-		t.Logf("Please specify SENDGRID_PRIVATE_KEY: %+v", err)
+		t.Logf("Please specify SENDGRID_API_KEY: %+v", err)
 		return
 	}
 	if err != nil {
@@ -56,7 +56,7 @@ func TestSendgridMultipleEmailsMultipleTos(t *testing.T) {
 }
 
 func TestSendgridSingleEmailMultipleTos(t *testing.T) {
-	s := Sendgrid{PrivateKey: os.Getenv("SENDGRID_PRIVATE_KEY")}
+	s := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY")}
 	mails := []MailItem{}
 	toList := []string{"asendia@warisin.com", "invalid@emailformat", "test@warisin.com"}
 	param := TestamentEmailParams{
@@ -84,7 +84,7 @@ func TestSendgridSingleEmailMultipleTos(t *testing.T) {
 	})
 	_, err = s.SendEmails(mails)
 	if errors.Is(err, ErrSendgridNoPrivateKey) {
-		t.Logf("Please specify SENDGRID_PRIVATE_KEY: %+v", err)
+		t.Logf("Please specify SENDGRID_API_KEY: %+v", err)
 		return
 	}
 	if err != nil {

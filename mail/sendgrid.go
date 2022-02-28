@@ -12,19 +12,19 @@ import (
 )
 
 type Sendgrid struct {
-	PrivateKey string
+	APIKey string
 }
 
 func (m *Sendgrid) GetVendorID() string {
 	return "SENDGRID"
 }
 
-func (s *Sendgrid) HasPrivateKeys() bool {
-	return s.PrivateKey != ""
+func (s *Sendgrid) HasAPIKey() bool {
+	return s.APIKey != ""
 }
 
 func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
-	if !s.HasPrivateKeys() {
+	if !s.HasAPIKey() {
 		return res, ErrSendgridNoPrivateKey
 	}
 	sendgridMail := mail.NewV3Mail()
@@ -43,7 +43,7 @@ func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criti
 		p.Subject = m.Subject
 		sendgridMail.AddPersonalizations(p)
 	}
-	client := sendgrid.NewSendClient(s.PrivateKey)
+	client := sendgrid.NewSendClient(s.APIKey)
 	sgRes, err := client.Send(sendgridMail)
 	if err != nil {
 		log.Printf("Sendgrid error: %+v", err)
