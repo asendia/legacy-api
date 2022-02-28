@@ -15,3 +15,13 @@
 
 node_modules
 #!include:.gitignore
+
+.vscode
+cmd/
+data/*.sql
+.env-dev-template.yaml
+.env-prod-template.yaml
+.env-test-template.yaml
+init-db.sh
+init.sh
+thunder-collection_legacy-api.json
