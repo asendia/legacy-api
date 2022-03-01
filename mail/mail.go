@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/mail"
 	"os"
+	"strings"
 )
 
 type MailAddress struct {
@@ -95,4 +97,37 @@ func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
 		currentMailIndex = targetMailIndex
 	}
 	return res
+}
+
+func ParseAddress(address string) (addr *mail.Address, err error) {
+	addr, err = mail.ParseAddress(address)
+	if err != nil {
+		return
+	}
+	err = parseValidAddress(addr.Address)
+	return
+}
+
+func ParseAddressList(list string) (addrList []*mail.Address, err error) {
+	addrList, err = mail.ParseAddressList(list)
+	if err != nil {
+		return
+	}
+	for id, addr := range addrList {
+		err := parseValidAddress(addr.Address)
+		if err != nil {
+			return addrList,
+				errors.New(fmt.Sprintf("Email: %s at index %d is invalid with error: %+v", addr.Address, id, err))
+		}
+	}
+	return
+}
+
+func parseValidAddress(validAddress string) error {
+	atPos := strings.LastIndex(validAddress, "@")
+	domainName := validAddress[atPos+1:]
+	if !strings.Contains(domainName, ".") {
+		return errors.New("Email domain doesn't contain dot (.)")
+	}
+	return nil
 }

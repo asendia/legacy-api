@@ -2,10 +2,10 @@ package api
 
 import (
 	"net/http"
-	"net/mail"
 	"os"
 
 	"github.com/asendia/legacy-api/data"
+	"github.com/asendia/legacy-api/mail"
 	"github.com/asendia/legacy-api/secure"
 	"github.com/google/uuid"
 )
