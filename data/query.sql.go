@@ -397,18 +397,19 @@ func (q *Queries) SelectMessagesByEmailCreator(ctx context.Context, emailCreator
 	return items, nil
 }
 
-const selectMessagesEmailReceivers = `-- name: SelectMessagesEmailReceivers :many
+const selectMessagesEmailReceiversNotUnsubscribed = `-- name: SelectMessagesEmailReceiversNotUnsubscribed :many
 SELECT
   message_id, email_receiver, is_unsubscribed, unsubscribe_secret
 FROM
   messages_email_receivers
 WHERE
-  message_id = $1
+  message_id = $1 AND
+  is_unsubscribed = FALSE
 LIMIT 3
 `
 
-func (q *Queries) SelectMessagesEmailReceivers(ctx context.Context, messageID uuid.UUID) ([]MessagesEmailReceiver, error) {
-	rows, err := q.db.Query(ctx, selectMessagesEmailReceivers, messageID)
+func (q *Queries) SelectMessagesEmailReceiversNotUnsubscribed(ctx context.Context, messageID uuid.UUID) ([]MessagesEmailReceiver, error) {
+	rows, err := q.db.Query(ctx, selectMessagesEmailReceiversNotUnsubscribed, messageID)
 	if err != nil {
 		return nil, err
 	}

@@ -32,21 +32,11 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 		res.StatusCode = http.StatusInternalServerError
 		return res, err
 	}
-	rReceivers, err := queries.SelectMessagesEmailReceivers(a.Context, param.ID)
+	rReceivers, err := queries.SelectMessagesEmailReceiversNotUnsubscribed(a.Context, param.ID)
 	if err != nil {
 		return res, err
 	}
-	mEmail := map[string]string{}
-	for _, email := range param.EmailReceivers {
-		mEmail[email] = "insert"
-	}
-	for _, rcv := range rReceivers {
-		if mEmail[rcv.EmailReceiver] == "insert" {
-			mEmail[rcv.EmailReceiver] = "ignore"
-		} else if mEmail[rcv.EmailReceiver] == "" {
-			mEmail[rcv.EmailReceiver] = "delete"
-		}
-	}
+	mEmail := diffOldWithNewEmailList(rReceivers, param.EmailReceivers)
 	newReceivers := []string{}
 	for email, action := range mEmail {
 		if action == "insert" {
@@ -93,4 +83,23 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 		NextReminderAt:       row.NextReminderAt,
 	}
 	return res, err
+}
+
+func diffOldWithNewEmailList(oldList []data.MessagesEmailReceiver, newList []string) (actionMap map[string]string) {
+	actionMap = map[string]string{}
+	for _, email := range newList {
+		actionMap[email] = "insert"
+	}
+	for _, rcv := range oldList {
+		action := ""
+		if rcv.IsUnsubscribed {
+			action = "hide"
+		} else if actionMap[rcv.EmailReceiver] == "insert" {
+			action = "ignore"
+		} else if actionMap[rcv.EmailReceiver] == "" {
+			action = "delete"
+		}
+		actionMap[rcv.EmailReceiver] = action
+	}
+	return actionMap
 }
