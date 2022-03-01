@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/mail"
 	"strings"
 
+	"github.com/asendia/legacy-api/mail"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 )

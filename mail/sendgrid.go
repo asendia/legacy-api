@@ -91,7 +91,7 @@ func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criti
 	}
 	for pID, m := range mails {
 		for toID, t := range m.To {
-			var err error
+			_, err := ParseAddress(t.Email)
 			if errMap[pID][toID] != "" {
 				err = errors.New(errMap[pID][toID])
 			}
