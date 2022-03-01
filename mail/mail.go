@@ -43,8 +43,11 @@ type SendMailVendorConfig struct {
 
 // Send emails using multiple vendors
 func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
-	vendorMailjet := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"), SecretKey: os.Getenv("MAILJET_SECRET_KEY")}
-	vendorSendgrid := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY")}
+	vendorMailjet := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
+		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
+		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
+	vendorSendgrid := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY"),
+		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
 	cfg := SendMailConfig{
 		Vendors: []SendMailVendorConfig{
 			{
@@ -127,7 +130,10 @@ func parseValidAddress(validAddress string) error {
 	atPos := strings.LastIndex(validAddress, "@")
 	domainName := validAddress[atPos+1:]
 	if !strings.Contains(domainName, ".") {
-		return errors.New("Email domain doesn't contain dot (.)")
+		return errors.New(fmt.Sprintf("Email: %s domain doesn't contain dot (.)", validAddress))
 	}
 	return nil
 }
+
+var ErrMailNoAPIKey = errors.New("Email provider requires API key(s), set in the " +
+	"[PROVIDER]_API_KEY environment variable")
