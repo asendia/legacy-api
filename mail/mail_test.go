@@ -53,3 +53,49 @@ func TestSendEmailsMultipleEmailsMultipleTos(t *testing.T) {
 		}
 	}
 }
+
+func TestParseAddress(t *testing.T) {
+	email := "isvalid@email.com"
+	a, err := ParseAddress(email)
+	if err != nil {
+		t.Fatalf("The email %s is valid", email)
+	}
+	if a.Address != email {
+		t.Fatalf("Email %s should be equal with %s", email, a.Address)
+	}
+	email = "doesnthave@dot"
+	_, err = ParseAddress(email)
+	if err == nil {
+		t.Fatalf("The domain in email %s should be invalid", email)
+	}
+	email = "doesnthavedomain@"
+	_, err = ParseAddress(email)
+	if err == nil {
+		t.Fatalf("The domain in email %s should be invalid", email)
+	}
+	email = "doesnthaveat"
+	_, err = ParseAddress(email)
+	if err == nil {
+		t.Fatalf("The domain in email %s should be invalid", email)
+	}
+	email = "@doesnthaveaddress.com"
+	_, err = ParseAddress(email)
+	if err == nil {
+		t.Fatalf("The domain in email %s should be invalid", email)
+	}
+}
+
+func TestParseAddressList(t *testing.T) {
+	addrList, err := ParseAddressList("doesnthave@dot, doesnthaveat, proper@email.com, @doesnhaveaddress")
+	if err == nil {
+		t.Fatalf("Should have error %+v %+v", addrList, err)
+	}
+	addrList, err = ParseAddressList("doesnthave@dot, proper@email.com")
+	if err == nil {
+		t.Fatalf("Should have error %+v %+v", addrList, err)
+	}
+	addrList, err = ParseAddressList("has@dot.com, proper@email.com,donthavespace@but.proper")
+	if err != nil {
+		t.Fatalf("Should pass, but %+v %+v", addrList, err)
+	}
+}
