@@ -47,13 +47,14 @@ INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_se
 RETURNING
   *;
 
--- name: SelectMessagesEmailReceivers :many
+-- name: SelectMessagesEmailReceiversNotUnsubscribed :many
 SELECT
   *
 FROM
   messages_email_receivers
 WHERE
-  message_id = $1
+  message_id = $1 AND
+  is_unsubscribed = FALSE
 LIMIT 3;
 
 -- name: UpdateMessagesEmailReceiverUnsubscribe :one
