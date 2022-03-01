@@ -35,13 +35,59 @@ func TestMailjetSingleEmailSingleTo(t *testing.T) {
 			HtmlContent: htmlContent,
 		},
 	}
-	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"), SecretKey: os.Getenv("MAILJET_SECRET_KEY")}
+	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
+		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
+		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
 	res, err := m.SendEmails(mails)
-	if errors.Is(err, ErrMailjetNoAPIKeys) {
-		t.Log(err)
+	if errors.Is(err, ErrMailNoAPIKey) {
+		t.Logf("%+v", err)
 		return
 	} else if err != nil {
 		t.Fatalf("Cannot send emails: %+v\n", err)
 	}
 	t.Logf("Sending emails successful: %+v\n", res)
+}
+
+func TestMailjetMultipleEmailsMultipleTos(t *testing.T) {
+	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
+		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
+		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
+	toList := []string{"asendia@warisin.com", "should@beinvalid", "test@warisin.com"}
+	mails, err := generateMultipleEmailsMultipleTos(toList, m.GetVendorID())
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	res, err := m.SendEmails(mails)
+	if errors.Is(err, ErrMailNoAPIKey) {
+		t.Logf("%+v", err)
+		return
+	}
+	if err != nil {
+		t.Fatalf("Sendgrid error %+v\n", err)
+	}
+	if res[1].Err == nil {
+		t.Fatal("Email should be invalid")
+	}
+}
+
+func TestMailjetSingleEmailMultipleTos(t *testing.T) {
+	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
+		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
+		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
+	toList := []string{"asendia@warisin.com", "invalid@emailformat", "test@warisin.com"}
+	mails, err := generateSingleEmailMultipleTos(toList, m.GetVendorID())
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	res, err := m.SendEmails(mails)
+	if errors.Is(err, ErrMailNoAPIKey) {
+		t.Logf("%+v", err)
+		return
+	}
+	if err != nil {
+		t.Fatalf("Sendgrid error %+v\n", err)
+	}
+	if res[0].Err == nil {
+		t.Fatal("Email should be invalid")
+	}
 }

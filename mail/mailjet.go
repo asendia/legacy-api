@@ -8,8 +8,9 @@ import (
 )
 
 type Mailjet struct {
-	APIKey    string
-	SecretKey string
+	APIKey      string
+	SecretKey   string
+	SandboxMode bool
 }
 
 func (m *Mailjet) GetVendorID() string {
@@ -22,10 +23,11 @@ func (m *Mailjet) HasAPIKey() bool {
 
 func (m *Mailjet) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
 	if !m.HasAPIKey() {
-		return res, ErrMailjetNoAPIKeys
+		return res, ErrMailNoAPIKey
 	}
 	client := mailjet.NewMailjetClient(m.APIKey, m.SecretKey)
-	messages := mailjet.MessagesV31{Info: convertMailItemsToMailjet(mails)}
+	messages := mailjet.MessagesV31{Info: convertMailItemsToMailjet(mails),
+		SandBoxMode: m.SandboxMode}
 	_, criticalError = client.SendMailV31(&messages)
 	errFeedbackList := &mailjet.APIFeedbackErrorsV31{}
 	isErrFeedbacklist := errors.As(criticalError, &errFeedbackList)
@@ -76,6 +78,3 @@ func convertMailItemsToMailjet(mails []MailItem) (mailjetMails []mailjet.InfoMes
 	}
 	return
 }
-
-var ErrMailjetNoAPIKeys = errors.New("Mailjet requires publicKey & privateKey, set in the " +
-	"MAILJET_API_KEY & MAILJET_SECRET_KEY environment variable")

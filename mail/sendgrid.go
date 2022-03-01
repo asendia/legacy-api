@@ -12,7 +12,8 @@ import (
 )
 
 type Sendgrid struct {
-	APIKey string
+	APIKey      string
+	SandboxMode bool
 }
 
 func (m *Sendgrid) GetVendorID() string {
@@ -25,9 +26,13 @@ func (s *Sendgrid) HasAPIKey() bool {
 
 func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criticalError error) {
 	if !s.HasAPIKey() {
-		return res, ErrSendgridNoPrivateKey
+		return res, ErrMailNoAPIKey
 	}
 	sendgridMail := mail.NewV3Mail()
+	mailSettings := mail.NewMailSettings()
+	sandboxMode := mail.NewSetting(s.SandboxMode)
+	mailSettings.SetSandboxMode(sandboxMode)
+	sendgridMail.SetMailSettings(mailSettings)
 	content := mail.NewContent("text/html", "%htmlContent%")
 	sendgridMail.AddContent(content)
 	for id, m := range mails {
@@ -97,9 +102,12 @@ func (s *Sendgrid) SendEmails(mails []MailItem) (res []SendEmailsResponse, criti
 			}
 			if pID >= len(res) {
 				res = append(res, SendEmailsResponse{
-					Err: err, Emails: []string{t.Email}, VendorID: s.GetVendorID()})
-			} else {
-				res[pID].Emails = append(res[pID].Emails, t.Email)
+					Emails: []string{}, VendorID: s.GetVendorID()})
+			}
+			res[pID].Emails = append(res[pID].Emails, t.Email)
+			// Record the first error if any
+			if err != nil && res[pID].Err == nil {
+				res[pID].Err = err
 			}
 		}
 	}
@@ -115,5 +123,3 @@ type SendgridErrorDescription struct {
 	Help    string `json:"help"`
 	Message string `json:"message"`
 }
-
-var ErrSendgridNoPrivateKey = errors.New("Sendgrid no Private Key")
