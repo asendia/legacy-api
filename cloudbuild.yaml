@@ -1,110 +1,70 @@
 steps:
-  - name: golang
-    args: ['go', 'version']
-  - name: bash
-    args: ['cp', '.env-test-template.yaml', '.env-test.yaml']
-  - name: 'golang'
-    entrypoint: 'sh'
+  - id: prepare-gce-proxy
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        echo "FROM docker.io/library/golang:latest
+        COPY --from=gcr.io/cloudsql-docker/gce-proxy /cloud_sql_proxy /cloudsql/cloud_sql_proxy" > Dockerfile-proxy;
+
+        docker build -f Dockerfile-proxy -t golang-with-gce-proxy .
+  - id: integration-test
+    name: golang-with-gce-proxy
+    entrypoint: bash
     args:
       - -c
       - |
-        wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
-        chmod +x cloud_sql_proxy
-        ./cloud_sql_proxy -instances=monarch-public:asia-southeast1:project-legacy-db=tcp:127.0.0.1:5432 -quiet &
+        cp .env-test-template.yaml .env-test.yaml
+        /cloudsql/cloud_sql_proxy -instances=monarch-public:asia-southeast1:project-legacy-db=tcp:127.0.0.1:5432 -quiet &
         go test ./...
     secretEnv:
       - DB_PASSWORD
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
       - SENDGRID_API_KEY
-  - name: bash
-    id: prepare-prod-env
+  - id: prepare-prod-env
+    name: bash
     args: ['cp', '.env-prod-template.yaml', '.env-prod.yaml']
-  - name: 'gcr.io/cloud-builders/gcloud'
+  - id: deploy-legacy-api
+    name: gcr.io/cloud-builders/gcloud
     waitFor: ['prepare-prod-env']
+    entrypoint: bash
     args:
-      [
-        'functions',
-        'deploy',
-        'legacy-api',
-        '--allow-unauthenticated',
-        '--entry-point',
-        'CloudFunctionForFrontendWithNetlifyJWT',
-        '--trigger-http',
-        '--region',
-        'asia-southeast1',
-        '--runtime',
-        'go116',
-        '--memory',
-        '128MB',
-        '--timeout',
-        '15s',
-        '--update-labels',
-        'service=legacy',
-        '--max-instances',
-        '100',
-        '--set-secrets',
-        'DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest',
-        '--env-vars-file',
-        '.env-prod.yaml',
-      ]
-  - name: 'gcr.io/cloud-builders/gcloud'
+      - -c
+      - |
+        gcloud functions deploy legacy-api --allow-unauthenticated \
+          --entry-point CloudFunctionForFrontendWithNetlifyJWT --trigger-http \
+          --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
+          --update-labels service=legacy --max-instances 100 \
+          --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
+          --env-vars-file .env-prod.yaml
+  - id: deploy-legacy-api-secret
+    name: gcr.io/cloud-builders/gcloud
     waitFor: ['prepare-prod-env']
+    entrypoint: bash
     args:
-      [
-        'functions',
-        'deploy',
-        'legacy-api-secret',
-        '--allow-unauthenticated',
-        '--entry-point',
-        'CloudFunctionForFrontendWithUserSecret',
-        '--trigger-http',
-        '--region',
-        'asia-southeast1',
-        '--runtime',
-        'go116',
-        '--memory',
-        '128MB',
-        '--timeout',
-        '15s',
-        '--update-labels',
-        'service=legacy',
-        '--max-instances',
-        '100',
-        '--set-secrets',
-        'DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest',
-        '--env-vars-file',
-        '.env-prod.yaml',
-      ]
-  - name: 'gcr.io/cloud-builders/gcloud'
+      - -c
+      - |
+        gcloud functions deploy legacy-api-secret --allow-unauthenticated \
+          --entry-point CloudFunctionForFrontendWithUserSecret --trigger-http \
+          --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
+          --update-labels service=legacy --max-instances 100 \
+          --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
+          --env-vars-file .env-prod.yaml
+  - id: deploy-legacy-api-scheduler
+    name: gcr.io/cloud-builders/gcloud
     waitFor: ['prepare-prod-env']
+    entrypoint: bash
     args:
-      [
-        'functions',
-        'deploy',
-        'legacy-api-scheduler',
-        '--allow-unauthenticated',
-        '--entry-point',
-        'CloudFunctionForSchedulerWithStaticSecret',
-        '--trigger-topic',
-        'project-legacy-scheduler',
-        '--region',
-        'asia-southeast1',
-        '--runtime',
-        'go116',
-        '--memory',
-        '128MB',
-        '--timeout',
-        '15s',
-        '--update-labels',
-        'service=legacy',
-        '--max-instances',
-        '100',
-        '--set-secrets',
-        'DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest',
-        '--env-vars-file',
-        '.env-prod.yaml',
-      ]
+      - -c
+      - |
+        gcloud functions deploy legacy-api-scheduler \
+          --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
+          --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
+          --update-labels service=legacy --max-instances 100 \
+          --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
+          --env-vars-file .env-prod.yaml
 availableSecrets:
   secretManager:
     - versionName: projects/548884499300/secrets/db_password_tester/versions/latest
