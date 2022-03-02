@@ -11,30 +11,32 @@ import (
 	"github.com/asendia/legacy-api/secure"
 	"github.com/asendia/legacy-api/simple"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
+
+var pgxPoolConn *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	simple.MustLoadEnv("../.env-test.yaml")
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
+	var err error
+	pgxPoolConn, err = data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
-		log.Fatalf("Cannot connect to DB: %v\n", err)
+		log.Fatalf("Cannot connect to DB: %+v %+v\n", pgxPoolConn, err)
 		return
 	}
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
-		// conn.Close()
 		log.Fatalf("Cannot begin transaction: %v\n", err)
 		return
 	}
 	if err := deleteAndCreateTableMessages(ctx, tx); err != nil {
-		// conn.Close()
 		log.Fatalf("Cannot create table messages: %v\n", err)
 		return
 	}
 	tx.Commit(ctx)
-	conn.Close()
 	code := m.Run()
+	pgxPoolConn.Close()
 	os.Exit(code)
 }
 
