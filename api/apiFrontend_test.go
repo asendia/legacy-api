@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/secure"
 	"github.com/asendia/legacy-api/simple"
 	"github.com/google/uuid"
@@ -14,12 +13,7 @@ import (
 
 func TestInsertMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v\n", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v\n", err)
 		return
@@ -49,12 +43,7 @@ func TestInsertMessage(t *testing.T) {
 
 func TestSelectMessagesByEmailCreator(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v\n", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v\n", err)
 		return
@@ -97,12 +86,7 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 
 func TestUpdateMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v\n", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v\n", err)
 		return
@@ -155,12 +139,7 @@ func TestUpdateMessage(t *testing.T) {
 
 func TestDeleteMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v\n", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v\n", err)
 		return
@@ -195,12 +174,7 @@ func TestDeleteMessage(t *testing.T) {
 }
 func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v", err)
 		return

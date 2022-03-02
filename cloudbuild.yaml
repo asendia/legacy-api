@@ -10,7 +10,7 @@ steps:
       - |
         wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
         chmod +x cloud_sql_proxy
-        ./cloud_sql_proxy -instances=monarch-public:asia-southeast1:project-legacy-db=tcp:127.0.0.1:5432 &
+        ./cloud_sql_proxy -instances=monarch-public:asia-southeast1:project-legacy-db=tcp:127.0.0.1:5432 -quiet &
         go test ./...
     secretEnv:
       - DB_PASSWORD

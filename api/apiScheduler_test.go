@@ -11,12 +11,7 @@ import (
 
 func TestSelectMessagesNeedReminding(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v", err)
 		return
@@ -71,12 +66,7 @@ func TestSelectMessagesNeedReminding(t *testing.T) {
 
 func TestSelectInactiveMessages(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
-	if err != nil {
-		t.Fatalf("Cannot connect to DB: %v", err)
-	}
-	defer conn.Close()
-	tx, err := conn.Begin(ctx)
+	tx, err := pgxPoolConn.Begin(ctx)
 	if err != nil {
 		t.Errorf("Cannot begin transaction: %v", err)
 		return
