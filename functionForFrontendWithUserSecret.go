@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/asendia/legacy-api/api"
 	"github.com/asendia/legacy-api/data"
@@ -29,7 +28,7 @@ func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Reque
 
 	// Establishing connection to database
 	ctx := r.Context()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig(os.Getenv("ENVIRONMENT")))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		log.Printf("Cannot connect to the database: %v\n", err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

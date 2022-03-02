@@ -35,7 +35,7 @@ func ConnectDB(ctx context.Context, connStrCfg DBConnStrConfig) (*pgxpool.Pool, 
 	return conn, err
 }
 
-func LoadDBURLConfig(env string) DBConnStrConfig {
+func LoadDBURLConfig() DBConnStrConfig {
 	cfg := DBConnStrConfig{}
 	cfg.Username = simple.DefaultString(os.Getenv("DB_USER"), cfg.Username)
 	cfg.Password = simple.DefaultString(os.Getenv("DB_PASSWORD"), cfg.Password)
