@@ -14,7 +14,7 @@ import (
 
 func TestInsertMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v\n", err)
 	}
@@ -49,7 +49,7 @@ func TestInsertMessage(t *testing.T) {
 
 func TestSelectMessagesByEmailCreator(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v\n", err)
 	}
@@ -97,7 +97,7 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 
 func TestUpdateMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v\n", err)
 	}
@@ -155,7 +155,7 @@ func TestUpdateMessage(t *testing.T) {
 
 func TestDeleteMessage(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v\n", err)
 	}
@@ -195,7 +195,7 @@ func TestDeleteMessage(t *testing.T) {
 }
 func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v", err)
 	}

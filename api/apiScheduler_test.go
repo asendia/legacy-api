@@ -11,7 +11,7 @@ import (
 
 func TestSelectMessagesNeedReminding(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestSelectMessagesNeedReminding(t *testing.T) {
 
 func TestSelectInactiveMessages(t *testing.T) {
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		t.Fatalf("Cannot connect to DB: %v", err)
 	}

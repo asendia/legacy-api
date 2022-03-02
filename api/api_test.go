@@ -16,7 +16,7 @@ import (
 func TestMain(m *testing.M) {
 	simple.MustLoadEnv("../.env-test.yaml")
 	ctx := context.Background()
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig("test"))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		log.Fatalf("Cannot connect to DB: %v\n", err)
 		return

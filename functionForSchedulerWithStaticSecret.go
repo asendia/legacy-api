@@ -16,7 +16,7 @@ import (
 func CloudFunctionForSchedulerWithStaticSecret(ctx context.Context, m PubSubMessage) error {
 	godotenv.Load()
 	// Establishing connection to database
-	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig(os.Getenv("ENVIRONMENT")))
+	conn, err := data.ConnectDB(ctx, data.LoadDBURLConfig())
 	if err != nil {
 		log.Printf("Cannot connect to the database: %v\n", err.Error())
 		return err
