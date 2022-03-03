@@ -95,8 +95,8 @@ func ParseReqDeleteMessage(r *http.Request) (p APIParamDeleteMessageByID, err er
 }
 
 func validateEmails(emails []string) error {
-	if len(emails) > 3 || len(emails) == 0 {
-		return errors.New("Receiver emails should be 1-3")
+	if len(emails) > 3 {
+		return errors.New("Maximum number of receiver emails is 3")
 	}
 	_, err := mail.ParseAddressList(strings.Join(emails, ","))
 	return err
@@ -104,21 +104,21 @@ func validateEmails(emails []string) error {
 
 func validateInactivePeriodDays(days int32) error {
 	if days < 90 || days > 360 {
-		return errors.New("InactivePeriodDays should be set to 90 to 360 days")
+		return errors.New("InactivePeriodDays should be set to within 90 & 360 days")
 	}
 	return nil
 }
 
 func validateReminderIntervalDays(days int32) error {
 	if days < 15 || days > 30 {
-		return errors.New("ReminderIntervalDays should be set to 15 to 30 days")
+		return errors.New("ReminderIntervalDays should be set to within 15 & 30 days")
 	}
 	return nil
 }
 
 func validateMessageContent(cnt string) error {
-	if len(cnt) < 10 || len(cnt) > 800 {
-		return errors.New("MessageContent length should be between 10 to 800 characters")
+	if len(cnt) > 800 {
+		return errors.New("Maximum character of MessageContent is 800")
 	}
 	return nil
 }
