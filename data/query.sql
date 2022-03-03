@@ -53,8 +53,8 @@ SELECT
 FROM
   messages_email_receivers
 WHERE
-  message_id = $1 AND
-  is_unsubscribed = FALSE
+  message_id = $1
+  AND is_unsubscribed = FALSE
 LIMIT 3;
 
 -- name: UpdateMessagesEmailReceiverUnsubscribe :one
@@ -106,23 +106,20 @@ SELECT
   messages.inactive_at AS msg_inactive_at,
   messages.next_reminder_at AS msg_next_reminder_at,
   messages.sent_counter AS msg_sent_counter,
-  message_id AS rcv_message_id,
-  email_receiver AS rcv_email_receiver,
-  is_unsubscribed AS rcv_is_unsubscribed,
-  unsubscribe_secret AS rcv_unsubscribe_secret
+  receivers.message_id AS rcv_message_id,
+  receivers.email_receiver AS rcv_email_receiver,
+  receivers.is_unsubscribed AS rcv_is_unsubscribed,
+  receivers.unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
   emails
   INNER JOIN messages ON messages.email_creator = emails.email
-  INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
-  INNER JOIN emails AS emails2 ON emails2.email = receivers.email_receiver
+  LEFT JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
 WHERE
   messages.email_creator = $1
   AND emails.is_active
-  AND emails2.is_active
-  AND receivers.is_unsubscribed = FALSE
 ORDER BY
-  messages.id ASC
-LIMIT 10;
+  messages.created_at ASC
+LIMIT 30;
 
 -- name: UpdateMessageExtendsInactiveAt :one
 UPDATE
@@ -174,18 +171,20 @@ SELECT
   messages.next_reminder_at AS msg_next_reminder_at,
   messages.sent_counter AS msg_sent_counter,
   message_id AS rcv_message_id,
-  email_receiver AS rcv_email_receiver,
-  is_unsubscribed AS rcv_is_unsubscribed,
-  unsubscribe_secret AS rcv_unsubscribe_secret
+  receivers.email_receiver AS rcv_email_receiver,
+  receivers.is_unsubscribed AS rcv_is_unsubscribed,
+  receivers.unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
   emails
   INNER JOIN messages ON emails.email = messages.email_creator
   INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
 WHERE
   messages.is_active
+  AND messages.content_encrypted <> ''
   AND messages.next_reminder_at <= CURRENT_DATE
   AND receivers.is_unsubscribed = FALSE
 ORDER BY
+  messages.created_at ASC,
   messages.id ASC
 LIMIT 100;
 
@@ -215,19 +214,23 @@ SELECT
   messages.inactive_at AS msg_inactive_at,
   messages.next_reminder_at AS msg_next_reminder_at,
   messages.sent_counter AS msg_sent_counter,
-  message_id AS rcv_message_id,
-  email_receiver AS rcv_email_receiver,
-  is_unsubscribed AS rcv_is_unsubscribed,
-  unsubscribe_secret AS rcv_unsubscribe_secret
+  receivers.message_id AS rcv_message_id,
+  receivers.email_receiver AS rcv_email_receiver,
+  receivers.is_unsubscribed AS rcv_is_unsubscribed,
+  receivers.unsubscribe_secret AS rcv_unsubscribe_secret
 FROM
   emails
   INNER JOIN messages ON emails.email = messages.email_creator
   INNER JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
 WHERE
   messages.inactive_at < CURRENT_DATE
+  AND messages.content_encrypted <> ''
   AND messages.is_active
-  AND sent_counter < 3
+  AND messages.sent_counter < 3
   AND receivers.is_unsubscribed = FALSE
+ORDER BY
+  messages.created_at ASC,
+  messages.id ASC
 LIMIT 100;
 
 -- name: UpdateMessageAfterSendingTestament :one

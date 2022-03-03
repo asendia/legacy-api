@@ -22,11 +22,17 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		return
 	}
 	mailItems := []mail.MailItem{}
+	messageContentMap := map[uuid.UUID]string{}
 	for _, row := range rows {
-		msgContent, err := DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
-		if err != nil {
-			fmt.Printf("Failed to decrypt message: %v\n", err)
-			continue
+		msgContent := messageContentMap[row.MsgID]
+		if msgContent == "" {
+			dMsgContent, err := DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
+			if err != nil {
+				fmt.Printf("Failed to decrypt message: %v\n", err)
+				continue
+			}
+			messageContentMap[row.MsgID] = dMsgContent
+			msgContent = dMsgContent
 		}
 		msgParam := mail.TestamentEmailParams{
 			Title:                 "Message from " + row.MsgEmailCreator + " sent by warisin.com",

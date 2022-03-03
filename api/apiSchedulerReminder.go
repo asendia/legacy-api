@@ -7,6 +7,7 @@ import (
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/mail"
+	"github.com/google/uuid"
 )
 
 func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
@@ -19,26 +20,24 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 	}
 	mailItems := []mail.MailItem{}
 	msgs := []*MessageData{}
-	currentEmailCreator := ""
+	msgMap := map[uuid.UUID]*MessageData{}
 	for _, row := range rows {
-		if row.MsgEmailCreator != currentEmailCreator {
-			msgs = append(msgs, &MessageData{
+		if msgMap[row.MsgID] == nil {
+			msgMap[row.MsgID] = &MessageData{
 				ID:                   row.MsgID,
 				CreatedAt:            row.MsgCreatedAt,
 				EmailCreator:         row.MsgEmailCreator,
-				EmailReceivers:       []string{row.RcvEmailReceiver},
+				EmailReceivers:       []string{},
 				InactivePeriodDays:   row.MsgInactivePeriodDays,
 				ReminderIntervalDays: row.MsgReminderIntervalDays,
 				IsActive:             row.MsgIsActive,
 				ExtensionSecret:      row.MsgExtensionSecret,
 				InactiveAt:           row.MsgInactiveAt,
 				NextReminderAt:       row.MsgNextReminderAt,
-			})
-			currentEmailCreator = row.MsgEmailCreator
-		} else {
-			msg := msgs[len(msgs)-1]
-			msg.EmailReceivers = append(msg.EmailReceivers, row.RcvEmailReceiver)
+			}
+			msgs = append(msgs, msgMap[row.MsgID])
 		}
+		msgMap[row.MsgID].EmailReceivers = append(msgMap[row.MsgID].EmailReceivers, row.RcvEmailReceiver)
 	}
 	for _, msg := range msgs {
 		param := mail.ReminderEmailParams{

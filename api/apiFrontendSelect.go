@@ -22,16 +22,15 @@ func (a *APIForFrontend) SelectMessagesByEmailCreator(jwtRes secure.JWTResponse)
 	if err != nil {
 		return res, err
 	}
+	msgMap := map[uuid.UUID]*MessageData{}
 	msgs := []*MessageData{}
-	currentMessageID := uuid.UUID{}
 	for _, row := range rows {
-		var msg *MessageData
-		if row.MsgID != currentMessageID {
+		if msgMap[row.MsgID] == nil {
 			msgContent, err := DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
 			if err != nil {
 				return res, err
 			}
-			msg = &MessageData{
+			msgMap[row.MsgID] = &MessageData{
 				ID:                   row.MsgID,
 				CreatedAt:            row.MsgCreatedAt,
 				EmailCreator:         row.MsgEmailCreator,
@@ -42,14 +41,12 @@ func (a *APIForFrontend) SelectMessagesByEmailCreator(jwtRes secure.JWTResponse)
 				IsActive:             row.MsgIsActive,
 				ExtensionSecret:      row.MsgExtensionSecret,
 				InactiveAt:           row.MsgInactiveAt,
-				NextReminderAt:       row.MsgNextReminderAt,
-			}
-			msgs = append(msgs, msg)
-		} else {
-			msg = msgs[len(msgs)-1]
+				NextReminderAt:       row.MsgNextReminderAt}
+			msgs = append(msgs, msgMap[row.MsgID])
 		}
-		msg.EmailReceivers = append(msg.EmailReceivers, row.RcvEmailReceiver)
-		currentMessageID = row.MsgID
+		if row.RcvEmailReceiver.Valid && row.RcvIsUnsubscribed.Valid && !row.RcvIsUnsubscribed.Bool {
+			msgMap[row.MsgID].EmailReceivers = append(msgMap[row.MsgID].EmailReceivers, row.RcvEmailReceiver.String)
+		}
 	}
 	res.Data = msgs
 	res.StatusCode = http.StatusOK
