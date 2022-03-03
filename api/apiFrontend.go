@@ -95,8 +95,12 @@ func ParseReqDeleteMessage(r *http.Request) (p APIParamDeleteMessageByID, err er
 }
 
 func validateEmails(emails []string) error {
-	if len(emails) > 3 {
+	emailLength := len(emails)
+	if emailLength > 3 {
 		return errors.New("Maximum number of receiver emails is 3")
+	}
+	if len(emails) == 0 {
+		return nil
 	}
 	_, err := mail.ParseAddressList(strings.Join(emails, ","))
 	return err
