@@ -23,7 +23,8 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 	jwtRes, err := VerifyNetlifyJWT(r)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Decode and verify auth failed", http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"err":"Decode and verify auth failed"}`, http.StatusForbidden)
 		return
 	}
 
@@ -84,17 +85,18 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 		res.StatusCode = http.StatusNotFound
 		break
 	}
+	w.Header().Set("Content-Type", "application/json")
 	// Handle controller error
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), res.GetValidStatusCode())
+		http.Error(w, `{"err":"`+err.Error()+`"}`, res.GetValidStatusCode())
 		return
 	}
 	// Generate response
 	resStr, err := res.ToString()
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Cannot generate a response", http.StatusInternalServerError)
+		http.Error(w, `{"err":"Cannot generate a response"}`, http.StatusInternalServerError)
 		return
 	}
 	tx.Commit(ctx)
