@@ -84,6 +84,11 @@ func TestValidateEmails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("validateEmails incorrectly detected valid emails")
 	}
+
+	err = validateEmails([]string{})
+	if err != nil {
+		t.Fatalf("Empty email list is valid in this service")
+	}
 }
 
 func TestValidateInactivePeriodDays(t *testing.T) {
