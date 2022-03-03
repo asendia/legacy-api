@@ -61,10 +61,11 @@ func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Reque
 		res.ResponseMsg = err.Error()
 		break
 	}
+	w.Header().Set("Content-Type", "application/json")
 	// Handle controller error
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), res.GetValidStatusCode())
+		http.Error(w, `{"err":"`+err.Error()+`"}`, res.GetValidStatusCode())
 		return
 	}
 	// Generate response
