@@ -107,8 +107,8 @@ func validateEmails(emails []string) error {
 }
 
 func validateInactivePeriodDays(days int32) error {
-	if days < 90 || days > 360 {
-		return errors.New("InactivePeriodDays should be set to within 90 & 360 days")
+	if days < 30 || days > 360 {
+		return errors.New("InactivePeriodDays should be set to within 30 & 360 days")
 	}
 	return nil
 }

@@ -92,11 +92,15 @@ func TestValidateEmails(t *testing.T) {
 }
 
 func TestValidateInactivePeriodDays(t *testing.T) {
-	err := validateInactivePeriodDays(30)
+	err := validateInactivePeriodDays(29)
 	if err == nil {
 		t.Fatalf("validateInactivePeriodDays failed to detect invalid inactive period")
 	}
 	err = validateInactivePeriodDays(90)
+	if err != nil {
+		t.Fatalf("validateInactivePeriodDays incorrectly detected valid InactivePeriodDays")
+	}
+	err = validateInactivePeriodDays(30)
 	if err != nil {
 		t.Fatalf("validateInactivePeriodDays incorrectly detected valid InactivePeriodDays")
 	}
