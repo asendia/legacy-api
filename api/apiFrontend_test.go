@@ -25,7 +25,7 @@ func TestDeleteMessage(t *testing.T) {
 		t.Fatal("DeleteMessage should be failed since there is no items in the table\n")
 	}
 	msg := generateMessageTemplate()
-	res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
+	res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
 		APIParamInsertMessage{
 			EmailReceivers:       msg.EmailReceivers,
 			MessageContent:       msg.MessageContent,
@@ -48,12 +48,10 @@ func TestValidateEmails(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Should detect that some email(s) are invalid")
 	}
-
 	err = validateEmails([]string{"test@warisin.com", "test2@waris.in"})
 	if err != nil {
 		t.Fatalf("validateEmails incorrectly detected valid emails")
 	}
-
 	err = validateEmails([]string{})
 	if err != nil {
 		t.Fatalf("Empty email list is valid in this service")
