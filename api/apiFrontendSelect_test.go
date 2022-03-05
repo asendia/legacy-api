@@ -33,7 +33,7 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 		} else if i == 4 {
 			msg.MessageContent = ""
 		}
-		res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
+		res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
 			APIParamInsertMessage{
 				EmailReceivers:       msg.EmailReceivers,
 				MessageContent:       msg.MessageContent,

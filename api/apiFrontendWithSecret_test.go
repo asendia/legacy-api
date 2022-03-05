@@ -19,7 +19,7 @@ func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 	a := APIForFrontend{Context: ctx, Tx: tx}
 	msg := generateMessageTemplate()
 	msg.InactiveAt = simple.TimeTodayUTC().Add(simple.DaysToDuration(1))
-	res, err := a.InsertMessage(
+	res, err := a.InsertMessageV2(
 		generateJwtMessageTemplate(msg.EmailCreator),
 		APIParamInsertMessage{
 			EmailReceivers:       msg.EmailReceivers,

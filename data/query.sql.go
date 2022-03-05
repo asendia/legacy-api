@@ -59,15 +59,26 @@ func (q *Queries) DeleteMessagesEmailReceiver(ctx context.Context, arg DeleteMes
 	return err
 }
 
-const insertEmailIgnoreConflict = `-- name: InsertEmailIgnoreConflict :exec
+const deleteMessagesEmailReceiversNotUnsubscribed = `-- name: DeleteMessagesEmailReceiversNotUnsubscribed :exec
+DELETE FROM messages_email_receivers
+WHERE message_id = $1
+  AND is_unsubscribed = FALSE
+`
+
+func (q *Queries) DeleteMessagesEmailReceiversNotUnsubscribed(ctx context.Context, messageID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteMessagesEmailReceiversNotUnsubscribed, messageID)
+	return err
+}
+
+const insertEmailConflictDoNothing = `-- name: InsertEmailConflictDoNothing :exec
 INSERT INTO emails (email)
   VALUES ($1)
 ON CONFLICT
   DO NOTHING
 `
 
-func (q *Queries) InsertEmailIgnoreConflict(ctx context.Context, email string) error {
-	_, err := q.db.Exec(ctx, insertEmailIgnoreConflict, email)
+func (q *Queries) InsertEmailConflictDoNothing(ctx context.Context, email string) error {
+	_, err := q.db.Exec(ctx, insertEmailConflictDoNothing, email)
 	return err
 }
 
@@ -170,6 +181,70 @@ func (q *Queries) InsertMessageIfLessThanThree(ctx context.Context, arg InsertMe
 	return i, err
 }
 
+const insertMessageIfLessThanThreeV2 = `-- name: InsertMessageIfLessThanThreeV2 :one
+WITH insert_email AS (
+INSERT INTO emails (email)
+    VALUES ($1)
+  ON CONFLICT
+    DO NOTHING
+  RETURNING
+    email)
+  INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
+    reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
+  SELECT
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $4)
+  WHERE (
+    SELECT
+      count(*)
+    FROM
+      messages
+    WHERE
+      messages.email_creator = $6) < 3
+RETURNING
+  id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter
+`
+
+type InsertMessageIfLessThanThreeV2Params struct {
+	EmailCreator         string
+	ContentEncrypted     string
+	InactivePeriodDays   int32
+	ReminderIntervalDays int32
+	ExtensionSecret      string
+	EmailCreator_2       string
+}
+
+func (q *Queries) InsertMessageIfLessThanThreeV2(ctx context.Context, arg InsertMessageIfLessThanThreeV2Params) (Message, error) {
+	row := q.db.QueryRow(ctx, insertMessageIfLessThanThreeV2,
+		arg.EmailCreator,
+		arg.ContentEncrypted,
+		arg.InactivePeriodDays,
+		arg.ReminderIntervalDays,
+		arg.ExtensionSecret,
+		arg.EmailCreator_2,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.EmailCreator,
+		&i.CreatedAt,
+		&i.ContentEncrypted,
+		&i.InactivePeriodDays,
+		&i.ReminderIntervalDays,
+		&i.IsActive,
+		&i.ExtensionSecret,
+		&i.InactiveAt,
+		&i.NextReminderAt,
+		&i.SentCounter,
+	)
+	return i, err
+}
+
 const insertMessagesEmailReceiver = `-- name: InsertMessagesEmailReceiver :one
 INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
   VALUES ($1, $2, $3)
@@ -185,6 +260,40 @@ type InsertMessagesEmailReceiverParams struct {
 
 func (q *Queries) InsertMessagesEmailReceiver(ctx context.Context, arg InsertMessagesEmailReceiverParams) (MessagesEmailReceiver, error) {
 	row := q.db.QueryRow(ctx, insertMessagesEmailReceiver, arg.MessageID, arg.EmailReceiver, arg.UnsubscribeSecret)
+	var i MessagesEmailReceiver
+	err := row.Scan(
+		&i.MessageID,
+		&i.EmailReceiver,
+		&i.IsUnsubscribed,
+		&i.UnsubscribeSecret,
+	)
+	return i, err
+}
+
+const insertMessagesEmailReceiverV2 = `-- name: InsertMessagesEmailReceiverV2 :one
+WITH insert_email AS (
+INSERT INTO emails (email)
+    VALUES ($2)
+  ON CONFLICT
+    DO NOTHING
+), delete_receivers AS (
+  DELETE FROM messages_email_receivers
+  WHERE message_id = $1
+    AND is_unsubscribed = FALSE)
+INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
+  VALUES ($1, $2, $3)
+RETURNING
+  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
+`
+
+type InsertMessagesEmailReceiverV2Params struct {
+	MessageID         uuid.UUID
+	EmailReceiver     string
+	UnsubscribeSecret string
+}
+
+func (q *Queries) InsertMessagesEmailReceiverV2(ctx context.Context, arg InsertMessagesEmailReceiverV2Params) (MessagesEmailReceiver, error) {
+	row := q.db.QueryRow(ctx, insertMessagesEmailReceiverV2, arg.MessageID, arg.EmailReceiver, arg.UnsubscribeSecret)
 	var i MessagesEmailReceiver
 	err := row.Scan(
 		&i.MessageID,
@@ -491,6 +600,36 @@ type SelectMessagesNeedRemindingRow struct {
 	RcvUnsubscribeSecret    string
 }
 
+// #name: UpdateMessageV2 :batchone
+// UPDATE
+//   messages
+// SET
+//   content_encrypted = $1,
+//   inactive_period_days = $2,
+//   reminder_interval_days = $3,
+//   is_active = $4,
+//   extension_secret = $5,
+//   inactive_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $2),
+//   next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+//   sent_counter = 0
+// WHERE
+//   id = $6
+//   AND email_creator = $7
+// RETURNING
+//   *;
+// DELETE messages_email_receivers
+// WHERE message_id = $6
+//   AND is_unsubscribed = FALSE;
+// INSERT INTO messages_email_receivers
+// SELECT
+//   unnest(@message_ids::uuid[]) AS message_id,
+//   unnest(@email_receivers::text[]) AS email_receiver,
+//   unnest(@unsubscribe_secret::text[]) AS unsubscribe_secret;
+// INSERT INTO emails
+// SELECT
+//   unnest(@email_receivers::test[]) AS email
+// ON CONFLICT (email)
+//   DO NOTHING;
 func (q *Queries) SelectMessagesNeedReminding(ctx context.Context) ([]SelectMessagesNeedRemindingRow, error) {
 	rows, err := q.db.Query(ctx, selectMessagesNeedReminding)
 	if err != nil {

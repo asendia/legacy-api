@@ -59,7 +59,7 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 			err = errP
 			break
 		}
-		res, err = a.InsertMessage(jwtRes, p)
+		res, err = a.InsertMessageV2(jwtRes, p)
 		break
 	case "select-messages":
 		res, err = a.SelectMessagesByEmailCreator(jwtRes)

@@ -4,39 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/asendia/legacy-api/simple"
 	"github.com/google/uuid"
 )
-
-func TestInsertMessage(t *testing.T) {
-	ctx := context.Background()
-	tx, err := pgxPoolConn.Begin(ctx)
-	if err != nil {
-		t.Errorf("Cannot begin transaction: %v\n", err)
-		return
-	}
-	defer tx.Rollback(ctx)
-	a := APIForFrontend{Context: ctx, Tx: tx}
-	msg := generateMessageTemplate()
-	res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
-		APIParamInsertMessage{
-			EmailReceivers:       msg.EmailReceivers,
-			MessageContent:       msg.MessageContent,
-			InactivePeriodDays:   msg.InactivePeriodDays,
-			ReminderIntervalDays: msg.ReminderIntervalDays,
-		})
-	if err != nil {
-		t.Fatalf("InsertMessage failed: %v\n", err)
-	}
-	row := res.Data.(MessageData)
-	if msg.ReminderIntervalDays != row.ReminderIntervalDays || msg.InactivePeriodDays != row.InactivePeriodDays {
-		t.Fatalf("Data mismatch: %v, expected %v\n", row, msg)
-	}
-	expectedInactiveAt := simple.TimeTodayUTC().Add(simple.DaysToDuration(int(msg.InactivePeriodDays)))
-	if row.InactiveAt != expectedInactiveAt {
-		t.Fatalf("InactiveAt mismatch: %v, expected %v\n", row.InactiveAt, expectedInactiveAt)
-	}
-}
 
 func TestDeleteMessage(t *testing.T) {
 	ctx := context.Background()
@@ -56,7 +25,7 @@ func TestDeleteMessage(t *testing.T) {
 		t.Fatal("DeleteMessage should be failed since there is no items in the table\n")
 	}
 	msg := generateMessageTemplate()
-	res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
+	res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
 		APIParamInsertMessage{
 			EmailReceivers:       msg.EmailReceivers,
 			MessageContent:       msg.MessageContent,

@@ -1,4 +1,4 @@
--- name: InsertEmailIgnoreConflict :exec
+-- name: InsertEmailConflictDoNothing :exec
 INSERT INTO emails (email)
   VALUES ($1)
 ON CONFLICT
@@ -41,7 +41,50 @@ WHERE (
 RETURNING
   *;
 
+-- name: InsertMessageIfLessThanThreeV2 :one
+WITH insert_email AS (
+INSERT INTO emails (email)
+    VALUES ($1)
+  ON CONFLICT
+    DO NOTHING
+  RETURNING
+    email)
+  INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
+    reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
+  SELECT
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $4)
+  WHERE (
+    SELECT
+      count(*)
+    FROM
+      messages
+    WHERE
+      messages.email_creator = $6) < 3
+RETURNING
+  *;
+
 -- name: InsertMessagesEmailReceiver :one
+INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
+  VALUES ($1, $2, $3)
+RETURNING
+  *;
+
+-- name: InsertMessagesEmailReceiverV2 :one
+WITH insert_email AS (
+INSERT INTO emails (email)
+    VALUES ($2)
+  ON CONFLICT
+    DO NOTHING
+), delete_receivers AS (
+  DELETE FROM messages_email_receivers
+  WHERE message_id = $1
+    AND is_unsubscribed = FALSE)
 INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
   VALUES ($1, $2, $3)
 RETURNING
@@ -67,6 +110,11 @@ WHERE
   AND unsubscribe_secret = $2
 RETURNING
   *;
+
+-- name: DeleteMessagesEmailReceiversNotUnsubscribed :exec
+DELETE FROM messages_email_receivers
+WHERE message_id = $1
+  AND is_unsubscribed = FALSE;
 
 -- name: UpdateEmail :one
 UPDATE
@@ -154,6 +202,36 @@ WHERE
 RETURNING
   *;
 
+-- #name: UpdateMessageV2 :batchone
+-- UPDATE
+--   messages
+-- SET
+--   content_encrypted = $1,
+--   inactive_period_days = $2,
+--   reminder_interval_days = $3,
+--   is_active = $4,
+--   extension_secret = $5,
+--   inactive_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $2),
+--   next_reminder_at = CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
+--   sent_counter = 0
+-- WHERE
+--   id = $6
+--   AND email_creator = $7
+-- RETURNING
+--   *;
+-- DELETE messages_email_receivers
+-- WHERE message_id = $6
+--   AND is_unsubscribed = FALSE;
+-- INSERT INTO messages_email_receivers
+-- SELECT
+--   unnest(@message_ids::uuid[]) AS message_id,
+--   unnest(@email_receivers::text[]) AS email_receiver,
+--   unnest(@unsubscribe_secret::text[]) AS unsubscribe_secret;
+-- INSERT INTO emails
+-- SELECT
+--   unnest(@email_receivers::test[]) AS email
+-- ON CONFLICT (email)
+--   DO NOTHING;
 -- name: SelectMessagesNeedReminding :many
 SELECT
   emails.email AS usr_email,

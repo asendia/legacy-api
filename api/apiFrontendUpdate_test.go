@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestUpdateMessage(t *testing.T) {
 	a := APIForFrontend{Context: ctx, Tx: tx}
 	for i := 0; i < 10; i++ {
 		msg := generateMessageTemplate()
-		res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
+		res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
 			APIParamInsertMessage{
 				EmailReceivers:       msg.EmailReceivers,
 				MessageContent:       msg.MessageContent,
@@ -73,7 +74,7 @@ func TestUpdateMessageNoReceiver(t *testing.T) {
 	a := APIForFrontend{Context: ctx, Tx: tx}
 	for i := 0; i < 10; i++ {
 		msg := generateMessageTemplate()
-		res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
+		res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
 			APIParamInsertMessage{
 				EmailReceivers:       msg.EmailReceivers,
 				MessageContent:       msg.MessageContent,
@@ -185,4 +186,122 @@ func receiverList(emailList []string) []data.MessagesEmailReceiver {
 		})
 	}
 	return msgList
+}
+
+func BenchmarkUpdateMessage(b *testing.B) {
+	ctx := context.Background()
+	tx, err := pgxPoolConn.Begin(ctx)
+	if err != nil {
+		b.Errorf("Cannot begin transaction: %v\n", err)
+		return
+	}
+	defer tx.Rollback(ctx)
+	rows := []MessageData{}
+	a := APIForFrontend{Context: ctx, Tx: tx}
+	for i := 0; i < 10; i++ {
+		msg := generateMessageTemplate()
+		res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
+			APIParamInsertMessage{
+				EmailReceivers:       msg.EmailReceivers,
+				MessageContent:       msg.MessageContent,
+				InactivePeriodDays:   msg.InactivePeriodDays,
+				ReminderIntervalDays: msg.ReminderIntervalDays,
+			})
+		if err != nil {
+			b.Errorf("Insert failed: %v\n", err)
+			return
+		}
+		rows = append(rows, res.Data.(MessageData))
+	}
+	for i := 0; i < b.N; i++ {
+		id := i % len(rows)
+		row := rows[id]
+		additionalMessage := ""
+		if i%3 == 0 {
+			additionalMessage = " ADDITIONAL TEXT"
+		}
+		row.IsActive = id%2 == 0
+		for j := 0; j < len(rows[id].EmailReceivers); j++ {
+			rows[id].EmailReceivers[j] = "email-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) + "@warisin.com"
+		}
+		res, err := a.UpdateMessage(generateJwtMessageTemplate(row.EmailCreator),
+			APIParamUpdateMessage{
+				MessageContent:       row.MessageContent + additionalMessage,
+				InactivePeriodDays:   row.InactivePeriodDays,
+				ReminderIntervalDays: row.ReminderIntervalDays,
+				IsActive:             row.IsActive,
+				ExtensionSecret:      row.ExtensionSecret,
+				ID:                   row.ID,
+				EmailReceivers:       rows[id].EmailReceivers,
+			})
+		if err != nil {
+			b.Errorf("Update failed: %v\n", err)
+			return
+		}
+		msg := res.Data.(MessageData)
+		if row.IsActive != msg.IsActive {
+			b.Error("UpdateMessage failed to change IsActive value\n")
+		}
+	}
+	b.Logf("msg:{update:%d},mail:{insert:%d},rcv:{select:%d,insert:%d,delete:%d}",
+		msg_update, mail_insert, rcv_select, rcv_insert, rcv_delete)
+}
+
+func BenchmarkUpdateMessageV2(b *testing.B) {
+	ctx := context.Background()
+	tx, err := pgxPoolConn.Begin(ctx)
+	if err != nil {
+		b.Errorf("Cannot begin transaction: %v\n", err)
+		return
+	}
+	defer tx.Rollback(ctx)
+	rows := []MessageData{}
+	a := APIForFrontend{Context: ctx, Tx: tx}
+	for i := 0; i < 10; i++ {
+		msg := generateMessageTemplate()
+		res, err := a.InsertMessageV2(generateJwtMessageTemplate(msg.EmailCreator),
+			APIParamInsertMessage{
+				EmailReceivers:       msg.EmailReceivers,
+				MessageContent:       msg.MessageContent,
+				InactivePeriodDays:   msg.InactivePeriodDays,
+				ReminderIntervalDays: msg.ReminderIntervalDays,
+			})
+		if err != nil {
+			b.Errorf("Insert failed: %v\n", err)
+			return
+		}
+		rows = append(rows, res.Data.(MessageData))
+	}
+	for i := 0; i < b.N; i++ {
+		id := i % len(rows)
+		row := rows[id]
+		additionalMessage := ""
+		if i%3 == 0 {
+			additionalMessage = " ADDITIONAL TEXT"
+		}
+		row.IsActive = id%2 == 0
+		for j := 0; j < len(rows[id].EmailReceivers); j++ {
+			rows[id].EmailReceivers[j] = "email-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) + "@warisin.com"
+		}
+		res, err := a.UpdateMessageV2(generateJwtMessageTemplate(row.EmailCreator),
+			APIParamUpdateMessage{
+				MessageContent:       row.MessageContent + additionalMessage,
+				InactivePeriodDays:   row.InactivePeriodDays,
+				ReminderIntervalDays: row.ReminderIntervalDays,
+				IsActive:             row.IsActive,
+				ExtensionSecret:      row.ExtensionSecret,
+				ID:                   row.ID,
+				EmailReceivers:       rows[id].EmailReceivers,
+			})
+		if err != nil {
+			b.Errorf("Update failed: %v\n", err)
+			return
+		}
+		msg := res.Data.(MessageData)
+		if row.IsActive != msg.IsActive {
+			b.Error("UpdateMessage failed to change IsActive value\n")
+		}
+	}
+	b.Logf("msg:{update:%d},mail:{insert:%d},rcv:{select:%d,insert:%d,delete:%d}",
+		msg_update, mail_insert, rcv_select, rcv_insert, rcv_delete)
 }

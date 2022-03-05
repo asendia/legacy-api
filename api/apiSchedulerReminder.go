@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -82,15 +81,6 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 				smRes.Err = err
 			}
 			continue
-		}
-		fmt.Printf("An email probably gets an error: %v\n", smRes.Err)
-		_, err := queries.UpdateEmail(a.Context, data.UpdateEmailParams{
-			IsActive: false,
-			Email:    msgs[id].EmailCreator,
-		})
-		if err != nil {
-			fmt.Printf("Failed updating email IsActive status: %v\n", err.Error())
-			smRes.Err = errors.New(smRes.Err.Error() + " & " + err.Error())
 		}
 	}
 	res.StatusCode = http.StatusOK
