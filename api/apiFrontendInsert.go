@@ -1,14 +1,13 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"net/mail"
 	"os"
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/secure"
-	"github.com/jackc/pgx/v4"
+	"github.com/google/uuid"
 )
 
 func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParamInsertMessage) (res APIResponse, err error) {
@@ -23,23 +22,20 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 		return res, err
 	}
 	queries := data.New(a.Tx)
-	err = queries.InsertEmailIgnoreConflict(a.Context, jwtRes.Email)
-	if err != nil {
-		res.StatusCode = http.StatusInternalServerError
-		return res, err
-	}
-	row, err := queries.InsertMessageIfLessThanThree(a.Context, data.InsertMessageIfLessThanThreeParams{
+	row, err := queries.InsertMessage(a.Context, data.InsertMessageParams{
 		EmailCreator:         jwtRes.Email,
 		ContentEncrypted:     encrypted,
 		InactivePeriodDays:   param.InactivePeriodDays,
 		ReminderIntervalDays: param.ReminderIntervalDays,
 		ExtensionSecret:      extensionSecret,
-		EmailCreator_2:       jwtRes.Email,
 	})
 	if err != nil {
 		res.StatusCode = http.StatusBadRequest
 		return res, err
 	}
+	emailReceivers := []string{}
+	messageIDs := []uuid.UUID{}
+	unsubscribeSecrets := []string{}
 	for _, emailReceiver := range param.EmailReceivers {
 		_, err := mail.ParseAddress(emailReceiver)
 		if err != nil {
@@ -47,35 +43,27 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 			res.ResponseMsg = "Inavlid receiver email: " + emailReceiver
 			return res, err
 		}
-		addr, err := queries.SelectEmail(a.Context, emailReceiver)
-		if err == pgx.ErrNoRows {
-		} else if err != nil {
-			res.StatusCode = http.StatusInternalServerError
-			return res, err
-		} else if !addr.IsActive {
-			res.StatusCode = http.StatusBadRequest
-			res.ResponseMsg = fmt.Sprintf("Email: %s is inactive, please use other emails", emailReceiver)
-			return res, err
-		}
-		err = queries.InsertEmailIgnoreConflict(a.Context, emailReceiver)
+		unsubscribeSecret, err := secure.GenerateRandomString(ExtensionSecretLength)
 		if err != nil {
 			res.StatusCode = http.StatusInternalServerError
 			return res, err
 		}
-		extensionSecret, err := secure.GenerateRandomString(ExtensionSecretLength)
-		if err != nil {
-			res.StatusCode = http.StatusInternalServerError
-			return res, err
-		}
-		_, err = queries.InsertMessagesEmailReceiver(a.Context, data.InsertMessagesEmailReceiverParams{
-			MessageID:         row.ID,
-			EmailReceiver:     emailReceiver,
-			UnsubscribeSecret: extensionSecret,
-		})
-		if err != nil {
-			res.StatusCode = http.StatusInternalServerError
-			return res, err
-		}
+		emailReceivers = append(emailReceivers, emailReceiver)
+		messageIDs = append(messageIDs, row.ID)
+		unsubscribeSecrets = append(unsubscribeSecrets, unsubscribeSecret)
+	}
+	rcvRows, err := queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{
+		MessageID:          row.ID,
+		EmailReceivers:     emailReceivers,
+		UnsubscribeSecrets: unsubscribeSecrets,
+	})
+	if err != nil {
+		res.StatusCode = http.StatusInternalServerError
+		return res, err
+	}
+	emailReceivers = []string{}
+	for _, emailReceiver := range rcvRows {
+		emailReceivers = append(emailReceivers, emailReceiver.EmailReceiver)
 	}
 	res.StatusCode = http.StatusOK
 	res.ResponseMsg = "Insert successful"
@@ -83,7 +71,7 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 		ID:                   row.ID,
 		CreatedAt:            row.CreatedAt,
 		EmailCreator:         row.EmailCreator,
-		EmailReceivers:       param.EmailReceivers,
+		EmailReceivers:       emailReceivers,
 		MessageContent:       param.MessageContent,
 		InactivePeriodDays:   row.InactivePeriodDays,
 		ReminderIntervalDays: row.ReminderIntervalDays,

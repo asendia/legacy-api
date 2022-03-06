@@ -77,7 +77,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 			continue
 		}
 		fmt.Printf("An email probably gets an error: %v\n", smRes.Err)
-		_, err := queries.UpdateEmail(a.Context, data.UpdateEmailParams{
+		err := queries.UpdateEmail(a.Context, data.UpdateEmailParams{
 			IsActive: false,
 			Email:    rows[id].RcvEmailReceiver,
 		})
