@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -40,16 +41,26 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 		ExtensionSecret:      extensionSecret,
 		ID:                   param.ID,
 		EmailCreator:         jwtRes.Email,
-		MessageIds:           messageIDs,
-		EmailReceivers:       param.EmailReceivers,
-		IsUnsubscribeds:      is_unsubscribeds,
-		UnsubscribeSecrets:   unsubscribeSecrets,
 	})
 	if err != nil {
+		fmt.Printf("Failed to UpdateMessage: %v", err)
 		res.StatusCode = http.StatusInternalServerError
 		return res, err
 	}
-
+	receiverRows, err := queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{
+		MessageID:          row.ID,
+		EmailReceivers:     param.EmailReceivers,
+		UnsubscribeSecrets: unsubscribeSecrets,
+	})
+	if err != nil {
+		fmt.Printf("Failed to UpsertReceivers: %v", err)
+		res.StatusCode = http.StatusInternalServerError
+		return res, err
+	}
+	receivers := []string{}
+	for _, r := range receiverRows {
+		receivers = append(receivers, r.EmailReceiver)
+	}
 	res.StatusCode = http.StatusOK
 	res.ResponseMsg = "Update successful"
 	res.Data = MessageData{

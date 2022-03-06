@@ -52,8 +52,8 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 		messageIDs = append(messageIDs, row.ID)
 		unsubscribeSecrets = append(unsubscribeSecrets, unsubscribeSecret)
 	}
-	rcvRows, err := queries.InsertMessagesEmailReceivers(a.Context, data.InsertMessagesEmailReceiversParams{
-		MessageIds:         messageIDs,
+	rcvRows, err := queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{
+		MessageID:          row.ID,
 		EmailReceivers:     emailReceivers,
 		UnsubscribeSecrets: unsubscribeSecrets,
 	})

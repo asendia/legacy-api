@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/simple"
 )
 
@@ -27,7 +28,6 @@ func TestInsertMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertMessage failed: %v\n", err)
 	}
-	tx.Commit(ctx)
 	row := res.Data.(MessageData)
 	if msg.ReminderIntervalDays != row.ReminderIntervalDays || msg.InactivePeriodDays != row.InactivePeriodDays {
 		t.Fatalf("Data mismatch: %v, expected %v\n", row, msg)
@@ -38,6 +38,14 @@ func TestInsertMessage(t *testing.T) {
 	}
 	if len(row.EmailReceivers) != 2 {
 		t.Fatal("EmailReceivers length should be 2")
+	}
+	queries := data.New(tx)
+	selectRows, err := queries.SelectMessage(ctx, row.ID)
+	if err != nil {
+		t.Fatalf("Cannot select by id: %s", row.ID)
+	}
+	if len(selectRows) != len(row.EmailReceivers) {
+		t.Fatalf("Inconsistent length after insertion: %d, should be %d", len(selectRows), len(row.EmailReceivers))
 	}
 	return
 }

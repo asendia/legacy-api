@@ -42,7 +42,7 @@ func (a *APIForFrontend) ExtendMessageInactiveAt(secret string, id uuid.UUID) (r
 
 func (a *APIForFrontend) UnsubscribeMessage(secret string, messageID uuid.UUID) (res APIResponse, err error) {
 	queries := data.New(a.Tx)
-	msgRcvr, err := queries.UpdateMessagesEmailReceiverUnsubscribe(a.Context, data.UpdateMessagesEmailReceiverUnsubscribeParams{
+	msgRcvr, err := queries.UpdateReceiverUnsubscribe(a.Context, data.UpdateReceiverUnsubscribeParams{
 		MessageID:         messageID,
 		UnsubscribeSecret: secret,
 	})

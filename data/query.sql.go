@@ -105,133 +105,6 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 	return i, err
 }
 
-const insertMessageV2 = `-- name: InsertMessageV2 :many
-WITH insert_email AS (
-INSERT INTO emails (email)
-    VALUES ($1)
-  ON CONFLICT
-    DO NOTHING
-  RETURNING
-    email
-), insert_message AS (
-INSERT INTO messages (email_creator, content_encrypted, inactive_period_days,
-  reminder_interval_days, extension_secret, inactive_at, next_reminder_at)
-  SELECT
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $3),
-    CURRENT_DATE + MAKE_INTERVAL(0, 0, 0, $4)
-  WHERE (
-    SELECT
-      count(*)
-    FROM
-      messages
-    WHERE
-      messages.email_creator = $1) < 3
-  RETURNING
-    id, email_creator, created_at, content_encrypted, inactive_period_days, reminder_interval_days, is_active, extension_secret, inactive_at, next_reminder_at, sent_counter)
-INSERT INTO messages_email_receivers
-SELECT
-  insert_message.id AS message_id,
-  unnest($6::text[]) AS email_receiver,
-  unnest($7::text[]) AS unsubscribe_secret
-RETURNING
-  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
-`
-
-type InsertMessageV2Params struct {
-	Email                string
-	ContentEncrypted     string
-	InactivePeriodDays   int32
-	ReminderIntervalDays int32
-	ExtensionSecret      string
-	EmailReceivers       []string
-	UnsubscribeSecrets   []string
-}
-
-func (q *Queries) InsertMessageV2(ctx context.Context, arg InsertMessageV2Params) ([]MessagesEmailReceiver, error) {
-	rows, err := q.db.Query(ctx, insertMessageV2,
-		arg.Email,
-		arg.ContentEncrypted,
-		arg.InactivePeriodDays,
-		arg.ReminderIntervalDays,
-		arg.ExtensionSecret,
-		arg.EmailReceivers,
-		arg.UnsubscribeSecrets,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MessagesEmailReceiver
-	for rows.Next() {
-		var i MessagesEmailReceiver
-		if err := rows.Scan(
-			&i.MessageID,
-			&i.EmailReceiver,
-			&i.IsUnsubscribed,
-			&i.UnsubscribeSecret,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const insertMessagesEmailReceivers = `-- name: InsertMessagesEmailReceivers :many
-WITH insert_email AS (
-INSERT INTO emails
-  SELECT
-    unnest($2::text[]) AS email
-  ON CONFLICT
-    DO NOTHING)
-INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
-SELECT
-  unnest($1::uuid[]) AS message_id,
-  unnest($2::text[]) AS email_receiver,
-  unnest($3::text[]) AS unsubscribe_secret
-RETURNING
-  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
-`
-
-type InsertMessagesEmailReceiversParams struct {
-	MessageIds         []uuid.UUID
-	EmailReceivers     []string
-	UnsubscribeSecrets []string
-}
-
-func (q *Queries) InsertMessagesEmailReceivers(ctx context.Context, arg InsertMessagesEmailReceiversParams) ([]MessagesEmailReceiver, error) {
-	rows, err := q.db.Query(ctx, insertMessagesEmailReceivers, arg.MessageIds, arg.EmailReceivers, arg.UnsubscribeSecrets)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MessagesEmailReceiver
-	for rows.Next() {
-		var i MessagesEmailReceiver
-		if err := rows.Scan(
-			&i.MessageID,
-			&i.EmailReceiver,
-			&i.IsUnsubscribed,
-			&i.UnsubscribeSecret,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const selectInactiveMessages = `-- name: SelectInactiveMessages :many
 SELECT
   emails.email AS usr_email,
@@ -298,6 +171,98 @@ func (q *Queries) SelectInactiveMessages(ctx context.Context) ([]SelectInactiveM
 	var items []SelectInactiveMessagesRow
 	for rows.Next() {
 		var i SelectInactiveMessagesRow
+		if err := rows.Scan(
+			&i.UsrEmail,
+			&i.UsrCreatedAt,
+			&i.UsrIsActive,
+			&i.MsgID,
+			&i.MsgEmailCreator,
+			&i.MsgCreatedAt,
+			&i.MsgContentEncrypted,
+			&i.MsgInactivePeriodDays,
+			&i.MsgReminderIntervalDays,
+			&i.MsgIsActive,
+			&i.MsgExtensionSecret,
+			&i.MsgInactiveAt,
+			&i.MsgNextReminderAt,
+			&i.MsgSentCounter,
+			&i.RcvMessageID,
+			&i.RcvEmailReceiver,
+			&i.RcvIsUnsubscribed,
+			&i.RcvUnsubscribeSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const selectMessage = `-- name: SelectMessage :many
+SELECT
+  emails.email AS usr_email,
+  emails.created_at AS usr_created_at,
+  emails.is_active AS usr_is_active,
+  messages.id AS msg_id,
+  messages.email_creator AS msg_email_creator,
+  messages.created_at AS msg_created_at,
+  messages.content_encrypted AS msg_content_encrypted,
+  messages.inactive_period_days AS msg_inactive_period_days,
+  messages.reminder_interval_days AS msg_reminder_interval_days,
+  messages.is_active AS msg_is_active,
+  messages.extension_secret AS msg_extension_secret,
+  messages.inactive_at AS msg_inactive_at,
+  messages.next_reminder_at AS msg_next_reminder_at,
+  messages.sent_counter AS msg_sent_counter,
+  receivers.message_id AS rcv_message_id,
+  receivers.email_receiver AS rcv_email_receiver,
+  receivers.is_unsubscribed AS rcv_is_unsubscribed,
+  receivers.unsubscribe_secret AS rcv_unsubscribe_secret
+FROM
+  emails
+  INNER JOIN messages ON messages.email_creator = emails.email
+  LEFT JOIN messages_email_receivers AS receivers ON messages.id = receivers.message_id
+WHERE
+  messages.id = $1
+  AND emails.is_active
+ORDER BY
+  messages.created_at ASC
+LIMIT 10
+`
+
+type SelectMessageRow struct {
+	UsrEmail                string
+	UsrCreatedAt            time.Time
+	UsrIsActive             bool
+	MsgID                   uuid.UUID
+	MsgEmailCreator         string
+	MsgCreatedAt            time.Time
+	MsgContentEncrypted     string
+	MsgInactivePeriodDays   int32
+	MsgReminderIntervalDays int32
+	MsgIsActive             bool
+	MsgExtensionSecret      string
+	MsgInactiveAt           time.Time
+	MsgNextReminderAt       time.Time
+	MsgSentCounter          int32
+	RcvMessageID            uuid.NullUUID
+	RcvEmailReceiver        sql.NullString
+	RcvIsUnsubscribed       sql.NullBool
+	RcvUnsubscribeSecret    sql.NullString
+}
+
+func (q *Queries) SelectMessage(ctx context.Context, id uuid.UUID) ([]SelectMessageRow, error) {
+	rows, err := q.db.Query(ctx, selectMessage, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectMessageRow
+	for rows.Next() {
+		var i SelectMessageRow
 		if err := rows.Scan(
 			&i.UsrEmail,
 			&i.UsrCreatedAt,
@@ -535,27 +500,6 @@ func (q *Queries) UpdateEmail(ctx context.Context, arg UpdateEmailParams) error 
 }
 
 const updateMessage = `-- name: UpdateMessage :one
-WITH insert_emails AS (
-INSERT INTO emails
-  SELECT
-    unnest($8::text[]) AS email
-  ON CONFLICT (email)
-    DO NOTHING
-),
-delete_receivers AS (
-  DELETE FROM messages_email_receivers
-  WHERE message_id = $6
-    AND is_unsubscribed = FALSE
-),
-insert_receivers AS (
-INSERT INTO messages_email_receivers
-  SELECT
-    unnest($9::uuid[]) AS message_id,
-    unnest($8::text[]) AS email_receiver,
-    unnest($10::boolean[]) AS is_unsubscribed,
-    unnest($11::text[]) AS unsubscribe_secret
-  ON CONFLICT
-    DO NOTHING)
 UPDATE
   messages
 SET
@@ -582,10 +526,6 @@ type UpdateMessageParams struct {
 	ExtensionSecret      string
 	ID                   uuid.UUID
 	EmailCreator         string
-	EmailReceivers       []string
-	MessageIds           []uuid.UUID
-	IsUnsubscribeds      []bool
-	UnsubscribeSecrets   []string
 }
 
 func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (Message, error) {
@@ -597,10 +537,6 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		arg.ExtensionSecret,
 		arg.ID,
 		arg.EmailCreator,
-		arg.EmailReceivers,
-		arg.MessageIds,
-		arg.IsUnsubscribeds,
-		arg.UnsubscribeSecrets,
 	)
 	var i Message
 	err := row.Scan(
@@ -729,7 +665,7 @@ func (q *Queries) UpdateMessageExtendsInactiveAt(ctx context.Context, arg Update
 	return i, err
 }
 
-const updateMessagesEmailReceiverUnsubscribe = `-- name: UpdateMessagesEmailReceiverUnsubscribe :one
+const updateReceiverUnsubscribe = `-- name: UpdateReceiverUnsubscribe :one
 UPDATE
   messages_email_receivers
 SET
@@ -741,13 +677,13 @@ RETURNING
   message_id, email_receiver, is_unsubscribed, unsubscribe_secret
 `
 
-type UpdateMessagesEmailReceiverUnsubscribeParams struct {
+type UpdateReceiverUnsubscribeParams struct {
 	MessageID         uuid.UUID
 	UnsubscribeSecret string
 }
 
-func (q *Queries) UpdateMessagesEmailReceiverUnsubscribe(ctx context.Context, arg UpdateMessagesEmailReceiverUnsubscribeParams) (MessagesEmailReceiver, error) {
-	row := q.db.QueryRow(ctx, updateMessagesEmailReceiverUnsubscribe, arg.MessageID, arg.UnsubscribeSecret)
+func (q *Queries) UpdateReceiverUnsubscribe(ctx context.Context, arg UpdateReceiverUnsubscribeParams) (MessagesEmailReceiver, error) {
+	row := q.db.QueryRow(ctx, updateReceiverUnsubscribe, arg.MessageID, arg.UnsubscribeSecret)
 	var i MessagesEmailReceiver
 	err := row.Scan(
 		&i.MessageID,
@@ -756,4 +692,61 @@ func (q *Queries) UpdateMessagesEmailReceiverUnsubscribe(ctx context.Context, ar
 		&i.UnsubscribeSecret,
 	)
 	return i, err
+}
+
+const upsertReceivers = `-- name: UpsertReceivers :many
+WITH insert_email AS (
+INSERT INTO emails
+  SELECT
+    unnest($2::text[]) AS email
+  ON CONFLICT
+    DO NOTHING
+),
+delete_receivers AS (
+  DELETE FROM messages_email_receivers
+  WHERE messages_email_receivers.message_id = $1
+    AND messages_email_receivers.is_unsubscribed = FALSE
+    AND messages_email_receivers.email_receiver NOT IN (
+      SELECT
+        unnest($2::text[])))
+INSERT INTO messages_email_receivers (message_id, email_receiver, unsubscribe_secret)
+SELECT
+  $1 AS message_id,
+  unnest($2::text[]) AS email_receiver,
+  unnest($3::text[]) AS unsubscribe_secret
+ON CONFLICT
+  DO NOTHING
+RETURNING
+  message_id, email_receiver, is_unsubscribed, unsubscribe_secret
+`
+
+type UpsertReceiversParams struct {
+	MessageID          uuid.UUID
+	EmailReceivers     []string
+	UnsubscribeSecrets []string
+}
+
+func (q *Queries) UpsertReceivers(ctx context.Context, arg UpsertReceiversParams) ([]MessagesEmailReceiver, error) {
+	rows, err := q.db.Query(ctx, upsertReceivers, arg.MessageID, arg.EmailReceivers, arg.UnsubscribeSecrets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessagesEmailReceiver
+	for rows.Next() {
+		var i MessagesEmailReceiver
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.EmailReceiver,
+			&i.IsUnsubscribed,
+			&i.UnsubscribeSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

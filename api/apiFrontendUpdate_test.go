@@ -34,6 +34,7 @@ func TestUpdateMessage(t *testing.T) {
 		}
 		rows = append(rows, res.Data.(MessageData))
 	}
+	queries := data.New(tx)
 	for id, row := range rows {
 		additionalMessage := " UPDATED!!!"
 		row.MessageContent += additionalMessage
@@ -66,6 +67,67 @@ func TestUpdateMessage(t *testing.T) {
 		} else if row.EmailReceivers[0] == msg.EmailReceivers[0] {
 			t.Error("UpdateMessage failed to change EmailReceivers value\n")
 		}
+		selectRows, err := queries.SelectMessage(ctx, msg.ID)
+		if err != nil {
+			t.Fatalf("Cannot select by id: %s", msg.ID)
+		}
+		if len(selectRows) != len(msg.EmailReceivers) {
+			t.Fatalf("Inconsistent length after insertion: %d, should be %d", len(selectRows), len(msg.EmailReceivers))
+		}
+	}
+}
+
+func TestUpdateMessageDoNothing(t *testing.T) {
+	ctx := context.Background()
+	tx, err := pgxPoolConn.Begin(ctx)
+	if err != nil {
+		t.Errorf("Cannot begin transaction: %v\n", err)
+		return
+	}
+	defer tx.Rollback(ctx)
+	a := APIForFrontend{Context: ctx, Tx: tx}
+	msg := generateMessageTemplate()
+	res, err := a.InsertMessage(generateJwtMessageTemplate(msg.EmailCreator),
+		APIParamInsertMessage{
+			EmailReceivers:       msg.EmailReceivers,
+			MessageContent:       msg.MessageContent,
+			InactivePeriodDays:   msg.InactivePeriodDays,
+			ReminderIntervalDays: msg.ReminderIntervalDays,
+		})
+	if err != nil {
+		t.Errorf("Insert failed: %v\n", err)
+		return
+	}
+	row := res.Data.(MessageData)
+	res, err = a.UpdateMessage(generateJwtMessageTemplate(row.EmailCreator),
+		APIParamUpdateMessage{
+			MessageContent:       row.MessageContent,
+			InactivePeriodDays:   row.InactivePeriodDays,
+			ReminderIntervalDays: row.ReminderIntervalDays,
+			IsActive:             row.IsActive,
+			ExtensionSecret:      row.ExtensionSecret,
+			ID:                   row.ID,
+			EmailReceivers:       row.EmailReceivers,
+		})
+	if err != nil {
+		t.Errorf("Update failed: %v\n", err)
+		return
+	}
+	msgRes := res.Data.(MessageData)
+	queries := data.New(tx)
+	actualRows, err := queries.SelectMessage(ctx, msgRes.ID)
+	if err != nil {
+		t.Errorf("Cannot select message by id in apiFrontendUpdate_test: %v\n", err)
+		return
+	}
+	if len(actualRows) != 2 {
+		t.Errorf("Rows from select message should have length of 2, but found %d\n", len(actualRows))
+	} else if msgRes.InactiveAt != actualRows[0].MsgInactiveAt {
+		t.Errorf("Inconsistent inactiveAt: %s, expected: %s\n", actualRows[0].MsgInactiveAt, msgRes.InactiveAt)
+	} else if msgRes.IsActive != actualRows[1].MsgIsActive {
+		t.Error("UpdateMessage failed to change IsActive value\n")
+	} else if len(actualRows) != len(row.EmailReceivers) {
+		t.Error("Inconsistent length in actualRows vs emailReceivers length")
 	}
 }
 
