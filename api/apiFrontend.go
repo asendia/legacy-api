@@ -121,8 +121,8 @@ func validateReminderIntervalDays(days int32) error {
 }
 
 func validateMessageContent(cnt string) error {
-	if len(cnt) > 800 {
-		return errors.New("Maximum character of MessageContent is 800")
+	if len(cnt) > 2000 {
+		return errors.New("Maximum character of MessageContent is 2000")
 	}
 	return nil
 }

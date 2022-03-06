@@ -9,7 +9,7 @@ CREATE TABLE public.messages (
   id uuid NOT NULL DEFAULT gen_random_uuid (),
   email_creator character varying(70) NOT NULL,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  content_encrypted character varying(1000) NOT NULL,
+  content_encrypted character varying(2500) NOT NULL,
   inactive_period_days integer DEFAULT 60 NOT NULL,
   reminder_interval_days integer DEFAULT 15 NOT NULL,
   is_active boolean DEFAULT TRUE NOT NULL,
