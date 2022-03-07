@@ -41,6 +41,9 @@ type MessageData struct {
 }
 
 func DecryptMessageContent(str string, secret string) (string, error) {
+	if isProbablyClientEncrypted(str) {
+		return str, nil
+	}
 	encryptedArr := strings.Split(str, ".")
 	if len(encryptedArr) != 2 {
 		return "", errors.New("Invalid encrypted string")
@@ -52,9 +55,16 @@ func DecryptMessageContent(str string, secret string) (string, error) {
 }
 
 func EncryptMessageContent(str string, secret string) (string, error) {
+	if isProbablyClientEncrypted(str) {
+		return str, nil
+	}
 	encrypted, err := secure.Encrypt(str, secret)
 	if err != nil {
 		return "", err
 	}
 	return encrypted.IV + "." + encrypted.Text, nil
+}
+
+func isProbablyClientEncrypted(str string) bool {
+	return strings.HasPrefix(str, "aes.utf8:")
 }
