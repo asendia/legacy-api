@@ -37,9 +37,9 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		var howToDecrypt = ""
 		if isProbablyClientEncrypted(msgContent) {
 			howToDecrypt = "This message is appeared to be client encrypted, you should be able to decrypt it by copy-pasting " +
-				`the text begins with "` + encryptPrefixText + `" to https://warisin.com, clicking "CLIENT-AES" button and enter the secret json ` +
-				"that should have been given to you by the writer of this will. The secret should look like this: " +
-				`{"chiper":"aes","secret":"somesecretxyz","encoding":"utf8"}`
+				`the text begins with "` + encryptPrefixText + `" to https://warisin.com, clicking "CLIENT-AES" button and enter the ` +
+				"secret text that should have been given to you by the writer of this will." +
+				``
 		}
 		msgParam := mail.TestamentEmailParams{
 			Title:                 "Message from " + row.MsgEmailCreator + " sent by warisin.com",
