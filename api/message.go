@@ -40,6 +40,8 @@ type MessageData struct {
 	SentCounter          int32     `json:"sentCounter"`
 }
 
+const encryptPrefixText = "aes.utf8:"
+
 func DecryptMessageContent(str string, secret string) (string, error) {
 	if isProbablyClientEncrypted(str) {
 		return str, nil
@@ -66,5 +68,5 @@ func EncryptMessageContent(str string, secret string) (string, error) {
 }
 
 func isProbablyClientEncrypted(str string) bool {
-	return strings.HasPrefix(str, "aes.utf8:")
+	return strings.HasPrefix(str, encryptPrefixText)
 }

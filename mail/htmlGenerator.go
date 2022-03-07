@@ -35,6 +35,7 @@ type TestamentEmailParams struct {
 	EmailCreator          string
 	MessageContentPerLine []string
 	UnsubscribeURL        string
+	HowToDecrypt          string
 }
 
 func GenerateTestamentEmail(param TestamentEmailParams) (string, error) {

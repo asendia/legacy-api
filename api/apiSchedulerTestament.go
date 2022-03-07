@@ -34,12 +34,20 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 			messageContentMap[row.MsgID] = dMsgContent
 			msgContent = dMsgContent
 		}
+		var howToDecrypt = ""
+		if isProbablyClientEncrypted(msgContent) {
+			howToDecrypt = "This message is appeared to be client encrypted, you should be able to decrypt it by copy-pasting " +
+				`the text begins with "` + encryptPrefixText + `" to https://warisin.com, clicking "CLIENT-AES" button and enter the secret json ` +
+				"that should have been given to you by the writer of this will. The secret should look like this: " +
+				`{"chiper":"aes","secret":"somesecretxyz","encoding":"utf8"}`
+		}
 		msgParam := mail.TestamentEmailParams{
 			Title:                 "Message from " + row.MsgEmailCreator + " sent by warisin.com",
 			FullName:              row.RcvEmailReceiver,
 			EmailCreator:          row.MsgEmailCreator,
 			MessageContentPerLine: strings.Split(msgContent, "\n"),
 			UnsubscribeURL:        fmt.Sprintf("https://warisin.com/?action=unsubscribe-message&id=%s&secret=%s", row.MsgID, row.RcvUnsubscribeSecret),
+			HowToDecrypt:          howToDecrypt,
 		}
 		mmsgHTML, err := mail.GenerateTestamentEmail(msgParam)
 		if err != nil {
