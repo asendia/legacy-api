@@ -119,9 +119,6 @@ gcloud functions deploy legacy-api-secret --allow-unauthenticated \
   --update-labels service=legacy --max-instances 100 \
   --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
   --env-vars-file .env-prod.yaml
-
-# If you want to upload manually, zip for Google Cloud Function
-zip -r legacy-api.zip api/ data/ mail/ secure/ simple/ .env functionForFrontendWithNetlifyJWT.go functionForFrontendWithUserSecret.go functionForSchedulerWithStaticSecret.go go.mod go.sum
 ```
 6. Deploy the scheduler
 ```sh
