@@ -40,15 +40,15 @@ func VerifyNetlifyJWT(c HTTPClient, authHeader string) (jwtRes JWTResponse, err 
 	if len(authHeaderSlice) != 2 || authHeaderSlice[0] != "Bearer" {
 		return jwtRes, errors.New("Invalid authorization header")
 	}
-	req, err := http.NewRequest(http.MethodGet, "https://warisin.com/.netlify/identity/user", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://sejiwo.com/.netlify/identity/user", nil)
 	if err != nil {
 		return jwtRes, err
 	}
 	req.Header.Set("authorization", "Bearer "+authHeaderSlice[1])
 	req.Header.Set("accept-encoding", "gzip, deflate, br")
 	req.Header.Set("content-type", "application/json")
-	req.Header.Set("referer", "https://warisin.com/")
-	req.Header.Set("authority", "warisin.com")
+	req.Header.Set("referer", "https://sejiwo.com/")
+	req.Header.Set("authority", "sejiwo.com")
 	req.Header.Set("user-agent", "legacy-go-server")
 	res, err := c.Do(req)
 	if err != nil {

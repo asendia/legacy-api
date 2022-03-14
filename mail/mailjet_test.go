@@ -10,11 +10,11 @@ import (
 
 func TestMailjetSingleEmailSingleTo(t *testing.T) {
 	param := ReminderEmailParams{
-		Title:              "Reminder to extend the delivery schedule of warisin.com testament",
+		Title:              "Reminder to extend the delivery schedule of sejiwo.com testament",
 		FullName:           "Warisin Team",
 		InactiveAt:         simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
-		TestamentReceivers: []string{"test@warisin.com", "noreply@warisin.com"},
-		ExtensionURL:       "https://warisin.com/extend?id=some-id&secret=some-secret"}
+		TestamentReceivers: []string{"test@sejiwo.com", "noreply@sejiwo.com"},
+		ExtensionURL:       "https://sejiwo.com/extend?id=some-id&secret=some-secret"}
 	htmlContent, err := GenerateReminderEmail(param)
 	if err != nil {
 		t.Fatalf("Cannot generate email from template: %v", err)
@@ -22,12 +22,12 @@ func TestMailjetSingleEmailSingleTo(t *testing.T) {
 	mails := []MailItem{
 		{
 			From: MailAddress{
-				Email: "noreply@warisin.com",
+				Email: "noreply@sejiwo.com",
 				Name:  "Warisin Team",
 			},
 			To: []MailAddress{
 				{
-					Email: "test@warisin.com",
+					Email: "test@sejiwo.com",
 					Name:  "Warisin User",
 				},
 			},
@@ -52,7 +52,7 @@ func TestMailjetMultipleEmailsMultipleTos(t *testing.T) {
 	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
 		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
 		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
-	toList := []string{"asendia@warisin.com", "should@beinvalid", "test@warisin.com"}
+	toList := []string{"asendia@sejiwo.com", "should@beinvalid", "test@sejiwo.com"}
 	mails, err := generateMultipleEmailsMultipleTos(toList, m.GetVendorID())
 	if err != nil {
 		t.Fatalf("%+v", err)
@@ -74,7 +74,7 @@ func TestMailjetSingleEmailMultipleTos(t *testing.T) {
 	m := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
 		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
 		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
-	toList := []string{"asendia@warisin.com", "invalid@emailformat", "test@warisin.com"}
+	toList := []string{"asendia@sejiwo.com", "invalid@emailformat", "test@sejiwo.com"}
 	mails, err := generateSingleEmailMultipleTos(toList, m.GetVendorID())
 	if err != nil {
 		t.Fatalf("%+v", err)

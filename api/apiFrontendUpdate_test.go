@@ -49,8 +49,8 @@ func TestUpdateMessage(t *testing.T) {
 				ExtensionSecret:      row.ExtensionSecret,
 				ID:                   row.ID,
 				EmailReceivers: []string{
-					"email-" + strconv.Itoa(id) + "-1@warisin.com",
-					"email-" + strconv.Itoa(id) + "-2@warisin.com",
+					"email-" + strconv.Itoa(id) + "-1@sejiwo.com",
+					"email-" + strconv.Itoa(id) + "-2@sejiwo.com",
 				},
 			})
 		if err != nil {
@@ -62,7 +62,7 @@ func TestUpdateMessage(t *testing.T) {
 			t.Errorf("Message doesn't containt additional string: %s, expected: %s\n", msg.MessageContent, additionalMessage)
 		} else if row.IsActive != msg.IsActive {
 			t.Error("UpdateMessage failed to change IsActive value\n")
-		} else if msg.EmailReceivers[1] != "email-"+strconv.Itoa(id)+"-2@warisin.com" {
+		} else if msg.EmailReceivers[1] != "email-"+strconv.Itoa(id)+"-2@sejiwo.com" {
 			t.Error("UpdateMessage failed to change EmailReceivers value\n")
 		} else if row.EmailReceivers[0] == msg.EmailReceivers[0] {
 			t.Error("UpdateMessage failed to change EmailReceivers value\n")
@@ -230,7 +230,7 @@ func BenchmarkUpdateMessage(b *testing.B) {
 		}
 		row.IsActive = id%2 == 0
 		for j := 0; j < len(rows[id].EmailReceivers); j++ {
-			rows[id].EmailReceivers[j] = "email-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) + "@warisin.com"
+			rows[id].EmailReceivers[j] = "email-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) + "@sejiwo.com"
 		}
 		res, err := a.UpdateMessage(generateJwtMessageTemplate(row.EmailCreator),
 			APIParamUpdateMessage{

@@ -37,16 +37,16 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		var howToDecrypt = ""
 		if isProbablyClientEncrypted(msgContent) {
 			howToDecrypt = "This message is appeared to be client encrypted, you should be able to decrypt it by copy-pasting " +
-				`the text begins with "` + encryptPrefixText + `" to https://warisin.com, clicking "CLIENT-AES" button and enter the ` +
+				`the text begins with "` + encryptPrefixText + `" to https://sejiwo.com, clicking "CLIENT-AES" button and enter the ` +
 				"secret text that should have been given to you by the writer of this will." +
 				``
 		}
 		msgParam := mail.TestamentEmailParams{
-			Title:                 "Message from " + row.MsgEmailCreator + " sent by warisin.com",
+			Title:                 "Message from " + row.MsgEmailCreator + " sent by sejiwo.com",
 			FullName:              row.RcvEmailReceiver,
 			EmailCreator:          row.MsgEmailCreator,
 			MessageContentPerLine: strings.Split(msgContent, "\n"),
-			UnsubscribeURL:        fmt.Sprintf("https://warisin.com/?action=unsubscribe-message&id=%s&secret=%s", row.MsgID, row.RcvUnsubscribeSecret),
+			UnsubscribeURL:        fmt.Sprintf("https://sejiwo.com/?action=unsubscribe-message&id=%s&secret=%s", row.MsgID, row.RcvUnsubscribeSecret),
 			HowToDecrypt:          howToDecrypt,
 		}
 		mmsgHTML, err := mail.GenerateTestamentEmail(msgParam)
@@ -56,7 +56,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		}
 		mailItems = append(mailItems, mail.MailItem{
 			From: mail.MailAddress{
-				Email: "noreply@warisin.com",
+				Email: "noreply@sejiwo.com",
 				Name:  "Warisin Service",
 			},
 			To: []mail.MailAddress{

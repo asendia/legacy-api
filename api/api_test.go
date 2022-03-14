@@ -75,10 +75,10 @@ func generateMessageTemplate() MessageData {
 		InactivePeriodDays:   90,
 		ReminderIntervalDays: 15,
 		MessageContent:       "Hello World!!! " + rdstr,
-		EmailCreator:         rdstr + "-test-creator@warisin.com",
+		EmailCreator:         rdstr + "-test-creator@sejiwo.com",
 		EmailReceivers: []string{
-			rdstr + "-test-receiver-1@warisin.com",
-			rdstr + "-test-receiver-2@warisin.com",
+			rdstr + "-test-receiver-1@sejiwo.com",
+			rdstr + "-test-receiver-2@sejiwo.com",
 		},
 		ExtensionSecret: extensionSecret,
 		IsActive:        true,

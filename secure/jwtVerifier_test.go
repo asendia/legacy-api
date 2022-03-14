@@ -10,7 +10,7 @@ import (
 func TestVerifyJWTSuccess(t *testing.T) {
 	token := "Bearer ValidToken4"
 	mockC := &HTTPClientMock{
-		Res: generateResMock(200, `{"id":"abc","aud":"","role":"","email":"test@warisin.com","confirmed_at":"2022-02-08T00:00:00Z","confirmation_sent_at":"2022-02-08T00:00:00Z","app_metadata":{"provider":"email"},"user_metadata":{"full_name":"Sir Legacy"},"created_at":"2022-02-08T00:00:00Z","updated_at":"2022-02-08T00:00:00Z"}`),
+		Res: generateResMock(200, `{"id":"abc","aud":"","role":"","email":"test@sejiwo.com","confirmed_at":"2022-02-08T00:00:00Z","confirmation_sent_at":"2022-02-08T00:00:00Z","app_metadata":{"provider":"email"},"user_metadata":{"full_name":"Sir Legacy"},"created_at":"2022-02-08T00:00:00Z","updated_at":"2022-02-08T00:00:00Z"}`),
 	}
 	res, err := VerifyNetlifyJWT(mockC, token)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 // For more information about CORS and CORS preflight requests, see
 // https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request.
 func VerifyCORS(w http.ResponseWriter, r *http.Request) (httpResponseCode int, err error) {
-	allowedOrigins := []string{"https://warisin.com", "http://localhost:3000"}
+	allowedOrigins := []string{"https://sejiwo.com", "http://localhost:3000"}
 	allowedOrigin := ""
 	for _, origin := range allowedOrigins {
 		if origin == r.Header.Get("origin") {

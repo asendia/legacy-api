@@ -10,11 +10,11 @@ import (
 
 func TestGenerateReminderEmail(t *testing.T) {
 	param := ReminderEmailParams{
-		Title:              "Reminder to extend the delivery schedule of warisin.com testament",
+		Title:              "Reminder to extend the delivery schedule of sejiwo.com testament",
 		FullName:           "Asendia Mayco",
 		InactiveAt:         simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("YYYY-MM-DD"),
 		TestamentReceivers: []string{"a@b.com", "c@d.com", "someone@somewhere.sometld"},
-		ExtensionURL:       "https://warisin.com/extend?id=some-id&secret=some-secret",
+		ExtensionURL:       "https://sejiwo.com/extend?id=some-id&secret=some-secret",
 	}
 	content, err := GenerateReminderEmail(param)
 	if err != nil {
@@ -27,12 +27,12 @@ func TestGenerateReminderEmail(t *testing.T) {
 
 func TestGenerateTestamentEmail(t *testing.T) {
 	param := TestamentEmailParams{
-		Title:        fmt.Sprintf("A warisin.com message sent on behalf of Asendia Mayco"),
+		Title:        fmt.Sprintf("A sejiwo.com message sent on behalf of Asendia Mayco"),
 		FullName:     "Asendia Mayco",
-		EmailCreator: "noreply@warisin.com",
+		EmailCreator: "noreply@sejiwo.com",
 		MessageContentPerLine: strings.Split(`
 `, "\n"),
-		UnsubscribeURL: "https://warisin.com/unsubscribe?id=some-id&secret=some-secret",
+		UnsubscribeURL: "https://sejiwo.com/unsubscribe?id=some-id&secret=some-secret",
 	}
 	content, err := GenerateTestamentEmail(param)
 	if err != nil {

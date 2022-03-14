@@ -44,11 +44,11 @@ func TestDeleteMessage(t *testing.T) {
 }
 
 func TestValidateEmails(t *testing.T) {
-	err := validateEmails([]string{"test@warisin.com", "inavlidemail"})
+	err := validateEmails([]string{"test@sejiwo.com", "inavlidemail"})
 	if err == nil {
 		t.Fatalf("Should detect that some email(s) are invalid")
 	}
-	err = validateEmails([]string{"test@warisin.com", "test2@waris.in"})
+	err = validateEmails([]string{"test@sejiwo.com", "test2@waris.in"})
 	if err != nil {
 		t.Fatalf("validateEmails incorrectly detected valid emails")
 	}

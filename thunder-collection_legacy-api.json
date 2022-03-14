@@ -11,7 +11,7 @@
       "_id": "c129f588-e687-4678-9887-ad96237ecb51",
       "created": "2022-02-13T17:45:41.833Z",
       "settings": {
-        "headers": [{ "name": "Origin", "value": "https://warisin.com" }],
+        "headers": [{ "name": "Origin", "value": "https://sejiwo.com" }],
         "auth": { "type": "bearer", "bearer": "NETLIFY_JWT" },
         "tests": []
       }
@@ -149,7 +149,7 @@
       ],
       "body": {
         "type": "json",
-        "raw": "{\n  \"id\": \"bce0a433-8eab-44fc-9377-c422bc4fb0a9\",\n  \"emailReceivers\": [\n    \"inkamemang@kentut\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": false\n}",
+        "raw": "{\n  \"id\": \"bce0a433-8eab-44fc-9377-c422bc4fb0a9\",\n  \"emailReceivers\": [\n    \"inkamemang@kentut\",\n    \"test@sejiwo.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": false\n}",
         "form": []
       },
       "tests": []
@@ -176,7 +176,7 @@
       ],
       "body": {
         "type": "json",
-        "raw": "{\n  \"id\": \"185caa8b-7edf-4fbe-9015-c473457ab403\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"test@warisin.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": true\n}",
+        "raw": "{\n  \"id\": \"185caa8b-7edf-4fbe-9015-c473457ab403\",\n  \"emailReceivers\": [\n    \"inka@kentut.com\",\n    \"test@sejiwo.com\"\n  ],\n  \"messageContent\": \"I have updated this message. Again and again\",\n  \"inactivePeriodDays\": 90,\n  \"reminderIntervalDays\": 15,\n  \"isActive\": true\n}",
         "form": []
       },
       "tests": []

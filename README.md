@@ -1,5 +1,5 @@
 # legacy-api
-Backend API code for [warisin.com](https://warisin.com/)
+Backend API code for [sejiwo.com](https://sejiwo.com/)
 
 ## Prerequisites
 - [Go 1.7](https://go.dev/doc/install)

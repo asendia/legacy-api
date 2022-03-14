@@ -9,7 +9,7 @@ import (
 func TestSendgridMultipleEmailsMultipleTos(t *testing.T) {
 	s := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY"),
 		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
-	toList := []string{"asendia@warisin.com", "should@beinvalid", "test@warisin.com"}
+	toList := []string{"asendia@sejiwo.com", "should@beinvalid", "test@sejiwo.com"}
 	mails, err := generateMultipleEmailsMultipleTos(toList, s.GetVendorID())
 	if err != nil {
 		t.Fatalf("%+v", err)
@@ -30,7 +30,7 @@ func TestSendgridMultipleEmailsMultipleTos(t *testing.T) {
 func TestSendgridSingleEmailMultipleTos(t *testing.T) {
 	s := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY"),
 		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
-	toList := []string{"asendia@warisin.com", "invalid@emailformat", "test@warisin.com"}
+	toList := []string{"asendia@sejiwo.com", "invalid@emailformat", "test@sejiwo.com"}
 	mails, err := generateSingleEmailMultipleTos(toList, s.GetVendorID())
 	if err != nil {
 		t.Fatalf("%+v", err)

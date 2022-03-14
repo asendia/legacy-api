@@ -105,7 +105,7 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 
 func VerifyNetlifyJWT(r *http.Request) (jwtRes secure.JWTResponse, err error) {
 	// Always login with this email during test or cmd
-	jwtRes = secure.JWTResponse{Email: "test@warisin.com"}
+	jwtRes = secure.JWTResponse{Email: "test@sejiwo.com"}
 	// Verify JWT token on prod env only
 	if os.Getenv("ENVIRONMENT") == "prod" {
 		client := &http.Client{Timeout: time.Second * 10}
