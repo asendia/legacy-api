@@ -41,7 +41,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 	for _, msg := range msgs {
 		param := mail.ReminderEmailParams{
 			Title:              "Reminder to extend your sejiwo.com message",
-			FullName:           "Warisin User",
+			FullName:           "Sejiwo User",
 			InactiveAt:         msg.InactiveAt.Local().Format("2006-01-02"),
 			TestamentReceivers: msg.EmailReceivers,
 			ExtensionURL:       fmt.Sprintf("https://sejiwo.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
@@ -54,7 +54,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		mail := mail.MailItem{
 			From: mail.MailAddress{
 				Email: "noreply@sejiwo.com",
-				Name:  "Warisin Service",
+				Name:  "Sejiwo Service",
 			},
 			To: []mail.MailAddress{
 				{

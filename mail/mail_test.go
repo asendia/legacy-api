@@ -21,7 +21,7 @@ func TestSendEmailsMultipleEmailsMultipleTos(t *testing.T) {
 	for id, to := range toList {
 		param := ReminderEmailParams{
 			Title:      "Reminder to extend the delivery schedule of sejiwo.com testament",
-			FullName:   "Warisin Team",
+			FullName:   "Sejiwo Team",
 			InactiveAt: simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
 			TestamentReceivers: []string{
 				fmt.Sprintf("testamentreceiver-%d-1@somedomain.com", id),
@@ -35,12 +35,12 @@ func TestSendEmailsMultipleEmailsMultipleTos(t *testing.T) {
 		mails = append(mails, MailItem{
 			From: MailAddress{
 				Email: "noreply@sejiwo.com",
-				Name:  "Warisin Team",
+				Name:  "Sejiwo Team",
 			},
 			To: []MailAddress{
 				{
 					Email: to,
-					Name:  fmt.Sprintf("Warisin User %d", id),
+					Name:  fmt.Sprintf("Sejiwo User %d", id),
 				},
 			},
 			Subject:     param.Title,
@@ -106,7 +106,7 @@ func generateMultipleEmailsMultipleTos(toList []string, vendorID string) ([]Mail
 	for id, to := range toList {
 		param := ReminderEmailParams{
 			Title:      "Reminder to extend the delivery schedule of sejiwo.com testament from " + vendorID,
-			FullName:   "Warisin Team",
+			FullName:   "Sejiwo Team",
 			InactiveAt: simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
 			TestamentReceivers: []string{
 				fmt.Sprintf("testamentreceiver-%d-1@somedomain.com", id),
@@ -120,12 +120,12 @@ func generateMultipleEmailsMultipleTos(toList []string, vendorID string) ([]Mail
 		mails = append(mails, MailItem{
 			From: MailAddress{
 				Email: "noreply@sejiwo.com",
-				Name:  "Warisin Team",
+				Name:  "Sejiwo Team",
 			},
 			To: []MailAddress{
 				{
 					Email: to,
-					Name:  fmt.Sprintf("Warisin User %d", id),
+					Name:  fmt.Sprintf("Sejiwo User %d", id),
 				},
 			},
 			Subject:     param.Title,
@@ -139,7 +139,7 @@ func generateSingleEmailMultipleTos(toList []string, vendorID string) ([]MailIte
 	mails := []MailItem{}
 	param := TestamentEmailParams{
 		Title:                 "Reminder to extend the delivery schedule of sejiwo.com testament from " + vendorID,
-		FullName:              "Warisin Team",
+		FullName:              "Sejiwo Team",
 		EmailCreator:          "noreply@sejiwo.com",
 		MessageContentPerLine: []string{"Line 1", "Line 2", "Line 3"},
 		UnsubscribeURL:        "https://sejiwo.com/?action=unsubscribe&id=some-id&secret=some-secret"}
@@ -154,7 +154,7 @@ func generateSingleEmailMultipleTos(toList []string, vendorID string) ([]MailIte
 	mails = append(mails, MailItem{
 		From: MailAddress{
 			Email: "noreply@sejiwo.com",
-			Name:  "Warisin Team",
+			Name:  "Sejiwo Team",
 		},
 		To:          tos,
 		Subject:     param.Title,

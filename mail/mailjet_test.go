@@ -11,7 +11,7 @@ import (
 func TestMailjetSingleEmailSingleTo(t *testing.T) {
 	param := ReminderEmailParams{
 		Title:              "Reminder to extend the delivery schedule of sejiwo.com testament",
-		FullName:           "Warisin Team",
+		FullName:           "Sejiwo Team",
 		InactiveAt:         simple.TimeTodayUTC().Add(simple.DaysToDuration(90)).Local().Format("2006-01-02"),
 		TestamentReceivers: []string{"test@sejiwo.com", "noreply@sejiwo.com"},
 		ExtensionURL:       "https://sejiwo.com/extend?id=some-id&secret=some-secret"}
@@ -23,12 +23,12 @@ func TestMailjetSingleEmailSingleTo(t *testing.T) {
 		{
 			From: MailAddress{
 				Email: "noreply@sejiwo.com",
-				Name:  "Warisin Team",
+				Name:  "Sejiwo Team",
 			},
 			To: []MailAddress{
 				{
 					Email: "test@sejiwo.com",
-					Name:  "Warisin User",
+					Name:  "Sejiwo User",
 				},
 			},
 			Subject:     param.Title,

@@ -57,12 +57,12 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		mailItems = append(mailItems, mail.MailItem{
 			From: mail.MailAddress{
 				Email: "noreply@sejiwo.com",
-				Name:  "Warisin Service",
+				Name:  "Sejiwo Service",
 			},
 			To: []mail.MailAddress{
 				{
 					Email: row.RcvEmailReceiver,
-					Name:  "Warisin User",
+					Name:  "Sejiwo User",
 				},
 			},
 			Subject:     msgParam.Title,
