@@ -1,22 +1,11 @@
 steps:
-  - id: prepare-gce-proxy
-    name: gcr.io/cloud-builders/docker
-    entrypoint: bash
-    args:
-      - '-c'
-      - |
-        echo "FROM docker.io/library/golang:latest
-        COPY --from=gcr.io/cloudsql-docker/gce-proxy /cloud_sql_proxy /cloudsql/cloud_sql_proxy" > Dockerfile-proxy;
-
-        docker build -f Dockerfile-proxy -t golang-with-gce-proxy .
   - id: integration-test
-    name: golang-with-gce-proxy
+    name: golang:latest
     entrypoint: bash
     args:
       - -c
       - |
         cp .env-test-template.yaml .env-test.yaml
-        /cloudsql/cloud_sql_proxy -instances=monarch-public:asia-southeast1:project-legacy-db=tcp:127.0.0.1:5432 -quiet &
         go test ./...
     secretEnv:
       - DB_PASSWORD

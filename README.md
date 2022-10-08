@@ -1,6 +1,8 @@
 # legacy-api
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
+Note: this guide uses Google Cloud SQL but currently sejiwo.com uses SupaBase since it has more competitive pricing.
+
 ## Prerequisites
 - [Go 1.7](https://go.dev/doc/install)
 - [Postgresql 14.1](https://www.postgresql.org/download/)
