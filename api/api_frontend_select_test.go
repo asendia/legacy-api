@@ -54,10 +54,22 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 	if len(msgs) != messageCtr {
 		t.Fatalf("Inconsistent length: %d, expected: %d\n", len(msgs), messageCtr)
 	}
-	if len(msgs[1].EmailReceivers) != 0 {
-		t.Error("EmailReceivers length should be 0")
+	zeroReceiversCtr := 0
+	emptyBodyCtr := 0
+	// Order is not guaranteed because the messages are inserted in a transaction,
+	// they have the same created_at value
+	for i := 0; i < 3; i++ {
+		if len(msgs[i].EmailReceivers) == 0 {
+			zeroReceiversCtr++
+		}
+		if msgs[i].MessageContent == "" {
+			emptyBodyCtr++
+		}
 	}
-	if msgs[2].MessageContent != "" {
-		t.Error("MessageContent should be empty string")
+	if zeroReceiversCtr != 1 {
+		t.Errorf("1 message should have 0 receivers, but found %d\n", zeroReceiversCtr)
+	}
+	if emptyBodyCtr != 1 {
+		t.Errorf("1 message should have empty body, but found %d\n", emptyBodyCtr)
 	}
 }
