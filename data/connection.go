@@ -42,7 +42,7 @@ func LoadDBURLConfig() DBConnStrConfig {
 	cfg.Host = simple.DefaultString(os.Getenv("DB_HOST"), cfg.Host)
 	cfg.Port = convertStrToIntFallback(os.Getenv("DB_PORT"), 5432)
 	cfg.Database = simple.DefaultString(os.Getenv("DB_NAME"), cfg.Database)
-	// Cloud Function
+	// Cloud Function with Cloud SQL
 	cfg.SocketDir = simple.DefaultString(os.Getenv("DB_SOCKET_DIR"), "/cloudsql")
 	cfg.InstanceConnectionName = os.Getenv("INSTANCE_CONNECTION_NAME")
 	// pgx
