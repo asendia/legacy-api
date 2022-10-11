@@ -93,7 +93,7 @@ func TestSelectInactiveMessages(t *testing.T) {
 		}
 		row := res.Data.(MessageData)
 		err = tx.QueryRow(ctx, "UPDATE messages SET inactive_at = $1 WHERE id = $2 RETURNING inactive_at;",
-			simple.TimeTodayUTC().Add(-simple.DaysToDuration(i)), row.ID).Scan(&row.InactiveAt)
+			simple.TimeTodayUTC().Add(-simple.DaysToDuration(i+1)), row.ID).Scan(&row.InactiveAt)
 		if err != nil {
 			t.Errorf("Failed to update inactive_at")
 			return
@@ -108,9 +108,9 @@ func TestSelectInactiveMessages(t *testing.T) {
 	if err != nil {
 		t.Errorf("Select messages need reminding failed: %v", err)
 	}
-	if len(msgs) != expectedMessagesEmailReceiversCtr {
-		t.Errorf("Invalid messages_email_receivers length: %d, expected: %d", len(msgs),
-			expectedMessagesEmailReceiversCtr)
+	if len(msgs) != expectedMessagesEmailReceiversCtr || len(rows)*2 != len(msgs) {
+		t.Errorf("Invalid messages_email_receivers length: %d, expected: %d (ctr), %d (rows)", len(msgs),
+			expectedMessagesEmailReceiversCtr, len(rows))
 		return
 	}
 	for _, msg := range msgs {

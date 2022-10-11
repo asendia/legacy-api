@@ -9,7 +9,7 @@ import (
 
 	"github.com/asendia/legacy-api/mail"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 )
 
 type APIForFrontend struct {
@@ -97,7 +97,7 @@ func ParseReqDeleteMessage(r *http.Request) (p APIParamDeleteMessageByID, err er
 func validateEmails(emails []string) error {
 	emailLength := len(emails)
 	if emailLength > 3 {
-		return errors.New("Maximum number of receiver emails is 3")
+		return errors.New("maximum number of receiver emails is 3")
 	}
 	if len(emails) == 0 {
 		return nil
@@ -122,7 +122,7 @@ func validateReminderIntervalDays(days int32) error {
 
 func validateMessageContent(cnt string) error {
 	if len(cnt) > 3000 {
-		return errors.New("Maximum character of MessageContent is 3000")
+		return errors.New("maximum character of MessageContent is 3000")
 	}
 	return nil
 }

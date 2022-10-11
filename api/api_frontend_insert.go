@@ -7,7 +7,6 @@ import (
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/secure"
-	"github.com/google/uuid"
 )
 
 func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParamInsertMessage) (res APIResponse, err error) {
@@ -34,7 +33,6 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 		return res, err
 	}
 	emailReceivers := []string{}
-	messageIDs := []uuid.UUID{}
 	unsubscribeSecrets := []string{}
 	for _, emailReceiver := range param.EmailReceivers {
 		_, err := mail.ParseAddress(emailReceiver)
@@ -49,7 +47,6 @@ func (a *APIForFrontend) InsertMessage(jwtRes secure.JWTResponse, param APIParam
 			return res, err
 		}
 		emailReceivers = append(emailReceivers, emailReceiver)
-		messageIDs = append(messageIDs, row.ID)
 		unsubscribeSecrets = append(unsubscribeSecrets, unsubscribeSecret)
 	}
 	rcvRows, err := queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{

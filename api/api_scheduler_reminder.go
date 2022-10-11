@@ -84,7 +84,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		}
 	}
 	res.StatusCode = http.StatusOK
-	res.ResponseMsg = fmt.Sprintf("Reminder emails sent successfully")
+	res.ResponseMsg = "Reminder emails sent successfully"
 	res.Data = smResList
 	return res, err
 }

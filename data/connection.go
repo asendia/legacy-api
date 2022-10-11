@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/asendia/legacy-api/simple"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func ConnectDB(ctx context.Context, connStrCfg DBConnStrConfig) (*pgxpool.Pool, error) {
@@ -31,7 +31,7 @@ func ConnectDB(ctx context.Context, connStrCfg DBConnStrConfig) (*pgxpool.Pool, 
 	if connStrCfg.PoolHealthCheckPeriod != 0 {
 		cfg.HealthCheckPeriod = connStrCfg.PoolHealthCheckPeriod
 	}
-	conn, err := pgxpool.ConnectConfig(ctx, cfg)
+	conn, err := pgxpool.NewWithConfig(ctx, cfg)
 	return conn, err
 }
 

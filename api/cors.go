@@ -18,7 +18,7 @@ func VerifyCORS(w http.ResponseWriter, r *http.Request) (httpResponseCode int, e
 	}
 	if allowedOrigin == "" {
 		http.Error(w, "CORS error", http.StatusForbidden)
-		return http.StatusForbidden, errors.New("Origin doesn't exist in allowedOrigins")
+		return http.StatusForbidden, errors.New("origin doesn't exist in allowedOrigins")
 	}
 	// Set CORS headers for the preflight request
 	if r.Method == http.MethodOptions {

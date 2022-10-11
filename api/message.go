@@ -48,7 +48,7 @@ func DecryptMessageContent(str string, secret string) (string, error) {
 	}
 	encryptedArr := strings.Split(str, ".")
 	if len(encryptedArr) != 2 {
-		return "", errors.New("Invalid encrypted string")
+		return "", errors.New("invalid encrypted string")
 	}
 	msgContent, err := secure.Decrypt(
 		secure.EncryptResult{IV: encryptedArr[0], Text: encryptedArr[1]},

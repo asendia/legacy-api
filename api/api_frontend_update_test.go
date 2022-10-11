@@ -186,16 +186,6 @@ func TestUpdateMessageNoReceiver(t *testing.T) {
 	}
 }
 
-func receiverList(emailList []string) []data.MessagesEmailReceiver {
-	msgList := []data.MessagesEmailReceiver{}
-	for _, email := range emailList {
-		msgList = append(msgList, data.MessagesEmailReceiver{
-			EmailReceiver: email,
-		})
-	}
-	return msgList
-}
-
 func BenchmarkUpdateMessage(b *testing.B) {
 	ctx := context.Background()
 	tx, err := pgxPoolConn.Begin(ctx)

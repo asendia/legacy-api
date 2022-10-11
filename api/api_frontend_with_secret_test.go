@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/asendia/legacy-api/simple"
 )
@@ -18,7 +19,6 @@ func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 	defer tx.Rollback(ctx)
 	a := APIForFrontend{Context: ctx, Tx: tx}
 	msg := generateMessageTemplate()
-	msg.InactiveAt = simple.TimeTodayUTC().Add(simple.DaysToDuration(1))
 	res, err := a.InsertMessage(
 		generateJwtMessageTemplate(msg.EmailCreator),
 		APIParamInsertMessage{
@@ -32,6 +32,12 @@ func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 		return
 	}
 	row := res.Data.(MessageData)
+	err = tx.QueryRow(ctx, "UPDATE messages SET inactive_at = $1 WHERE id = $2 RETURNING inactive_at;",
+		simple.TimeTodayUTC().Add(simple.DaysToDuration(1)), row.ID).Scan(&row.InactiveAt)
+	if err != nil {
+		t.Errorf("Failed to update inactive_at: %v\n", err)
+		return
+	}
 	res, err = a.ExtendMessageInactiveAt(row.ExtensionSecret, row.ID)
 	if err != nil {
 		t.Fatalf("ExtendMessage failed: %v", err)
@@ -40,11 +46,15 @@ func TestUpdateMessageExtendMessageInactiveAt(t *testing.T) {
 	if msg.InactivePeriodDays != msgRow.InactivePeriodDays {
 		t.Fatalf("Data mismatch\n")
 	}
-	inactivePeriodDiffNsec := float64(msgRow.InactiveAt.Sub(simple.TimeTodayUTC()) / 24 / 3600)
-	inactivePeriodDiffDays := math.Round(inactivePeriodDiffNsec / 1000000000)
-	if row.ID != msgRow.ID || int32(inactivePeriodDiffDays) != msgRow.InactivePeriodDays {
-		t.Errorf("Inactive period is not updated: %v expected: %v\n",
-			msgRow.InactiveAt, row.InactiveAt.Add(simple.DaysToDuration(int(row.InactivePeriodDays))))
+	inactiveDaysDiff := math.Abs(msgRow.InactiveAt.Sub(row.InactiveAt).Hours() / 24)
+	if inactiveDaysDiff < 10 {
+		t.Errorf("InactiveAt not updated: %v expected: %v\n", msgRow.InactiveAt, row.InactiveAt)
+	}
+	expectedInactiveAt := time.Now().AddDate(0, 0, int(row.InactivePeriodDays))
+	inactiveDaysDiff = math.Abs(msgRow.InactiveAt.Sub(expectedInactiveAt).Hours() / 24)
+	if row.ID != msgRow.ID || inactiveDaysDiff >= 1 {
+		t.Errorf("Unexpected inactiveAt: %v expected: %v\n",
+			msgRow.InactiveAt, expectedInactiveAt)
 	} else if msgRow.ExtensionSecret == row.ExtensionSecret {
 		t.Errorf("Extension secret does not change: %s old: %s", msgRow.ExtensionSecret, row.ExtensionSecret)
 	}

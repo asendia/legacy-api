@@ -95,7 +95,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		}
 	}
 	res.StatusCode = http.StatusOK
-	res.ResponseMsg = fmt.Sprintf("Testament emails sent successfully")
+	res.ResponseMsg = "Testament emails sent successfully"
 	res.Data = smResList
 	return res, err
 }
@@ -106,33 +106,6 @@ func (a *APIForScheduler) SelectInactiveMessages() (res APIResponse, err error) 
 	if err != nil {
 		res.StatusCode = http.StatusInternalServerError
 		return
-	}
-	msgs := []MessageData{}
-	currentMessageID := uuid.UUID{}
-	for _, row := range rows {
-		var msg MessageData
-		if currentMessageID != row.MsgID {
-			msg = MessageData{
-				ID:                   row.MsgID,
-				CreatedAt:            row.MsgCreatedAt,
-				EmailCreator:         row.MsgEmailCreator,
-				EmailReceivers:       []string{row.RcvEmailReceiver},
-				InactivePeriodDays:   row.MsgInactivePeriodDays,
-				ReminderIntervalDays: row.MsgReminderIntervalDays,
-				IsActive:             row.MsgIsActive,
-				ExtensionSecret:      row.MsgExtensionSecret,
-				InactiveAt:           row.MsgInactiveAt,
-				NextReminderAt:       row.MsgNextReminderAt,
-			}
-			msg.MessageContent, err = DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
-			if err != nil {
-				return res, err
-			}
-		} else {
-			msg = msgs[len(msgs)-1]
-			msg.EmailReceivers = append(msg.EmailReceivers, row.RcvEmailReceiver)
-		}
-		msgs = append(msgs)
 	}
 	res.Data = rows
 	return res, err

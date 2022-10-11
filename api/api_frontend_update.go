@@ -7,7 +7,6 @@ import (
 
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/secure"
-	"github.com/google/uuid"
 )
 
 func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParamUpdateMessage) (res APIResponse, err error) {
@@ -21,12 +20,8 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 	if err != nil {
 		return res, err
 	}
-	messageIDs := []uuid.UUID{}
 	unsubscribeSecrets := []string{}
-	is_unsubscribeds := []bool{}
 	for i := 0; i < len(param.EmailReceivers); i++ {
-		messageIDs = append(messageIDs, param.ID)
-		is_unsubscribeds = append(is_unsubscribeds, false)
 		unsubscribeSecret, err := secure.GenerateRandomString(ExtensionSecretLength)
 		if err != nil {
 			return res, err
@@ -47,7 +42,7 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 		res.StatusCode = http.StatusInternalServerError
 		return res, err
 	}
-	receiverRows, err := queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{
+	_, err = queries.UpsertReceivers(a.Context, data.UpsertReceiversParams{
 		MessageID:          row.ID,
 		EmailReceivers:     param.EmailReceivers,
 		UnsubscribeSecrets: unsubscribeSecrets,
@@ -56,10 +51,6 @@ func (a *APIForFrontend) UpdateMessage(jwtRes secure.JWTResponse, param APIParam
 		fmt.Printf("Failed to UpsertReceivers: %v", err)
 		res.StatusCode = http.StatusInternalServerError
 		return res, err
-	}
-	receivers := []string{}
-	for _, r := range receiverRows {
-		receivers = append(receivers, r.EmailReceiver)
 	}
 	res.StatusCode = http.StatusOK
 	res.ResponseMsg = "Update successful"

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	mailjet "github.com/mailjet/mailjet-apiv3-go"
+	"github.com/mailjet/mailjet-apiv3-go/v4"
 )
 
 type Mailjet struct {

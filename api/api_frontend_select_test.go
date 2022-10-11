@@ -52,7 +52,7 @@ func TestSelectMessagesByEmailCreator(t *testing.T) {
 	}
 	msgs := res.Data.([]*MessageData)
 	if len(msgs) != messageCtr {
-		t.Fatalf("Inconsistent length: %d, expected: %d\n", len(msgs), messageCtr)
+		t.Fatalf("Inconsistent length: %d, expected: %d (ctr), %d (rows)\n", len(msgs), messageCtr, len(rows))
 	}
 	zeroReceiversCtr := 0
 	emptyBodyCtr := 0

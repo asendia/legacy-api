@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"os"
 	"testing"
@@ -10,8 +9,8 @@ import (
 	"github.com/asendia/legacy-api/data"
 	"github.com/asendia/legacy-api/secure"
 	"github.com/asendia/legacy-api/simple"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var pgxPoolConn *pgxpool.Pool
@@ -50,7 +49,7 @@ func deleteAndCreateTableMessages(ctx context.Context, tx pgx.Tx) error {
 		return err
 	}
 	// Create the tables
-	qCreateTable, err := ioutil.ReadFile("../data/schema.sql")
+	qCreateTable, err := os.ReadFile("../data/schema.sql")
 	if err != nil {
 		return err
 	}
@@ -58,7 +57,7 @@ func deleteAndCreateTableMessages(ctx context.Context, tx pgx.Tx) error {
 		return err
 	}
 	// Create the tables
-	qGrantRole, err := ioutil.ReadFile("../data/schema_test.sql")
+	qGrantRole, err := os.ReadFile("../data/schema_test.sql")
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/asendia/legacy-api/data"
@@ -33,7 +34,8 @@ func TestInsertMessage(t *testing.T) {
 		t.Fatalf("Data mismatch: %v, expected %v\n", row, msg)
 	}
 	expectedInactiveAt := simple.TimeTodayUTC().Add(simple.DaysToDuration(int(msg.InactivePeriodDays)))
-	if row.InactiveAt != expectedInactiveAt {
+	diffDays := row.InactiveAt.Sub(expectedInactiveAt).Hours() / 24
+	if math.Abs(diffDays) > 1 {
 		t.Fatalf("InactiveAt mismatch: %v, expected %v\n", row.InactiveAt, expectedInactiveAt)
 	}
 	if len(row.EmailReceivers) != 2 {
@@ -47,7 +49,6 @@ func TestInsertMessage(t *testing.T) {
 	if len(selectRows) != len(row.EmailReceivers) {
 		t.Fatalf("Inconsistent length after insertion: %d, should be %d", len(selectRows), len(row.EmailReceivers))
 	}
-	return
 }
 
 func BenchmarkInsertMessage(b *testing.B) {

@@ -135,7 +135,7 @@ cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
 gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-  --region asia-southeast1 --runtime go116 --memory 128Mi --timeout 15s --gen2 \
+  --region asia-southeast1 --runtime go119 --memory 128Mi --timeout 15s --gen2 \
   --update-labels service=legacy --max-instances 10 \
   --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
   --env-vars-file .env-prod-cloud-function.yaml
