@@ -54,6 +54,11 @@ echo -n "PUT_THE_STATIC_SECRET_HERE" | \
 echo -n "PUT_THE_ENCRYPTION_KEY_HERE" | \
   gcloud secrets create "encryption_key" --replication-policy "automatic" --data-file -
 
+# Additional SSL cert for Supabase
+# Download from https://supabase.com/docs/guides/database/connecting-to-postgres#connecting-with-ssl
+cat prod-ca-2021.crt | \
+  gcloud secrets create "supabase_ssl_certificate" --replication-policy "automatic" --data-file -
+
 # To send emails
 echo -n "PUT_THE_MAILJET_API_KEY_HERE" | \
   gcloud secrets create "mailjet_api_key" --replication-policy "automatic" --data-file -

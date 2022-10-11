@@ -42,6 +42,8 @@ func LoadDBURLConfig() DBConnStrConfig {
 	cfg.Host = simple.DefaultString(os.Getenv("DB_HOST"), cfg.Host)
 	cfg.Port = convertStrToIntFallback(os.Getenv("DB_PORT"), 5432)
 	cfg.Database = simple.DefaultString(os.Getenv("DB_NAME"), cfg.Database)
+	cfg.SSLMode = simple.DefaultString(os.Getenv("DB_SSLMODE"), cfg.SSLMode)
+	cfg.SSLRootCert = simple.DefaultString(os.Getenv("DB_SSLROOTCERT"), cfg.SSLRootCert)
 	// Cloud Function with Cloud SQL
 	cfg.SocketDir = simple.DefaultString(os.Getenv("DB_SOCKET_DIR"), "/cloudsql")
 	cfg.InstanceConnectionName = os.Getenv("INSTANCE_CONNECTION_NAME")
@@ -58,11 +60,13 @@ func LoadDBURLConfig() DBConnStrConfig {
 }
 
 type DBConnStrConfig struct {
-	Username string
-	Password string
-	Host     string
-	Port     int
-	Database string
+	Username    string
+	Password    string
+	Host        string
+	Port        int
+	Database    string
+	SSLMode     string
+	SSLRootCert string
 	// https://cloud.google.com/sql/docs/postgres/connect-functions#go
 	SocketDir              string
 	InstanceConnectionName string
@@ -91,6 +95,12 @@ func (d *DBConnStrConfig) GenerateConnString() string {
 	}
 	if d.Port != 0 {
 		s += " port=" + fmt.Sprint(d.Port)
+	}
+	if d.SSLMode != "" {
+		s += " sslmode=" + d.SSLMode
+	}
+	if d.SSLRootCert != "" {
+		s += " sslrootcert=" + d.SSLRootCert
 	}
 	return s
 }

@@ -5,6 +5,7 @@ steps:
     args:
       - -c
       - |
+        echo "$$SUPABASE_SSL_CERTIFICATE" > prod-ca-2021.crt
         cp .env-test-template.yaml .env-test.yaml
         go test ./...
     secretEnv:
@@ -12,9 +13,13 @@ steps:
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
       - SENDGRID_API_KEY
+      - SUPABASE_SSL_CERTIFICATE
   - id: prepare-prod-env
     name: bash
-    args: ['cp', '.env-prod-template.yaml', '.env-prod.yaml']
+    args:
+      - -c
+      - |
+        cp .env-prod-template.yaml .env-prod.yaml
   - id: deploy-legacy-api
     name: gcr.io/cloud-builders/gcloud
     waitFor: ['prepare-prod-env']
@@ -64,3 +69,5 @@ availableSecrets:
       env: MAILJET_SECRET_KEY
     - versionName: projects/548884499300/secrets/sendgrid_api_key/versions/latest
       env: SENDGRID_API_KEY
+    - versionName: projects/548884499300/secrets/supabase_ssl_certificate/versions/latest
+      env: SUPABASE_SSL_CERTIFICATE
