@@ -71,7 +71,7 @@ echo -n "PUT_THE_MAILJET_SECRET_KEY_HERE" | \
 echo -n "PUT_THE_SENDGRID_API_KEY_HERE" | \
   gcloud secrets create "sendgrid_api_key" --replication-policy "automatic" --data-file -
 ```
-2. Give the secret manager read access to your project service account. You can actually see the exact command when you deploy the function using commands in the next step
+2. Give the secret manager read access to your project service account.
 ```sh
 gcloud projects add-iam-policy-binding [YOUR_GCLOUD_PROJECT_NAME] --member='serviceAccount:[YOUR_GCLOUD_PROJECT_NAME]@appspot.gserviceaccount.com' --role='roles/secretmanager.secretAccessor'
 ```
@@ -135,7 +135,7 @@ cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
 gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-  --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
+  --region asia-southeast1 --runtime go116 --memory 128Mi --timeout 15s --gen2 \
   --update-labels service=legacy --max-instances 10 \
   --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
   --env-vars-file .env-prod-cloud-function.yaml
