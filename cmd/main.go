@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
+	"os"
 
 	p "github.com/asendia/legacy-api"
 	"github.com/asendia/legacy-api/simple"
@@ -13,12 +13,18 @@ import (
 
 func main() {
 	simple.MustLoadEnv("")
-	port := 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	http.HandleFunc("/legacy-api", p.CloudFunctionForFrontendWithNetlifyJWT)
 	http.HandleFunc("/legacy-api-secret", p.CloudFunctionForFrontendWithUserSecret)
-	http.HandleFunc("/legacy-api-scheduler", handleScheduler)
-	log.Printf("Server is running on localhost:%d", port)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), nil))
+	if os.Getenv("ENVIRONMENT") != "prod" {
+		// Scheduler uses cloud function in production
+		http.HandleFunc("/legacy-api-scheduler", handleScheduler)
+	}
+	log.Printf("Server is running on localhost:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func handleScheduler(w http.ResponseWriter, r *http.Request) {

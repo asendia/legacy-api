@@ -17,7 +17,6 @@ node_modules
 #!include:.gitignore
 
 .vscode
-cmd/
 data/*.sql
 .env-dev-template.yaml
 .env-prod-template.yaml
@@ -25,6 +24,10 @@ data/*.sql
 init-db.sh
 init.sh
 thunder-collection_legacy-api.json
+
+# Cloud run
+!.env-prod.yaml
+!.env-prod-cloud-function.yaml
 
 # Include supabase cert
 !prod-ca-2021.crt

@@ -104,30 +104,19 @@ psql -h 127.0.0.1 -p 5678 -U postgres
 # Copy paste the query in data/schema.sql #
 ###########################################
 ```
-4. Create the production config file
+4. Deploy the Cloud Run service
 ```sh
+# Copy env
 cp .env-prod-template.yaml .env-prod.yaml
 # Then edit the .env-prod.yaml, follow the comments provided in the file
-```
-5. Deploy the functions
-```sh
-# CloudFunctionForFrontendWithNetlifyJWT: legacy-api
-gcloud functions deploy legacy-api --allow-unauthenticated \
-  --entry-point CloudFunctionForFrontendWithNetlifyJWT --trigger-http \
-  --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
-  --update-labels service=legacy --max-instances 100 \
-  --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
-  --env-vars-file .env-prod.yaml
 
-# CloudFunctionForFrontendWithUserSecret: legacy-api-secret
-gcloud functions deploy legacy-api-secret --allow-unauthenticated \
-  --entry-point CloudFunctionForFrontendWithUserSecret --trigger-http \
-  --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
-  --update-labels service=legacy --max-instances 100 \
-  --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
-  --env-vars-file .env-prod.yaml
+gcloud run deploy legacy-api --source . \
+  --region=asia-southeast1 --allow-unauthenticated --timeout 15s \
+  --min-instances 0 --max-instances 100 --cpu 1 --memory 128Mi \
+  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
+  --env-vars-file .env-prod.yaml --update-labels service=legacy --tag=main
 ```
-6. Deploy the scheduler
+5. Deploy the scheduler
 ```sh
 # Create a pub/sub topic - this might take a while
 gcloud pubsub topics create project-legacy-scheduler
@@ -140,11 +129,14 @@ gcloud scheduler jobs create pubsub SendTestaments --location asia-southeast1 --
   --topic project-legacy-scheduler --attributes action=send-testaments \
   --description "Send reminder messages daily" --time-zone "Asia/Jakarta"
 
+# Copy env
+cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
+
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
 gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
   --region asia-southeast1 --runtime go116 --memory 128MB --timeout 15s \
-  --update-labels service=legacy --max-instances 100 \
+  --update-labels service=legacy --max-instances 10 \
   --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
-  --env-vars-file .env-prod.yaml
+  --env-vars-file .env-prod-cloud-function.yaml
 ```

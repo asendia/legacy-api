@@ -1,6 +1,7 @@
 .DS_Store
 .env-dev.yaml
 .env-prod.yaml
+.env-prod-cloud-function.yaml
 .env-test.yaml
 legacy-api*.zip
 prod-ca-2021.crt
