@@ -1,15 +1,12 @@
 # legacy-api
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
-Note: this guide uses Google Cloud SQL but currently sejiwo.com uses SupaBase since it has more competitive pricing.
-
 ## Prerequisites
-- [Go 1.7](https://go.dev/doc/install)
+- [Go 1.19](https://go.dev/doc/install)
 - [Postgresql 14.1](https://www.postgresql.org/download/)
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
 - [gcloud cli](https://cloud.google.com/sdk/docs/install) (Optional, for deploying the api to Google Cloud Platform)
-- [cloud_sql_proxy](https://cloud.google.com/sql/docs/mysql/connect-admin-proxy) (Optional, proxy to connect to cloud sql)
 
 ## Development
 ### Database setup
@@ -39,8 +36,6 @@ ENVIRONMENT=dev go run cmd/main.go # Or just use vscode debug feature
 2. Import `thunder-collection_legacy-api.json` from thunder client
 
 ## Deployment
-
-### Google Cloud
 1. Create the secrets needed to run the apps
 ```sh
 echo -n "PUT_THE_DB_PASSWORD_HERE" | \
@@ -76,23 +71,9 @@ echo -n "PUT_THE_SENDGRID_API_KEY_HERE" | \
 gcloud projects add-iam-policy-binding [YOUR_GCLOUD_PROJECT_NAME] --member='serviceAccount:[YOUR_GCLOUD_PROJECT_NAME]@appspot.gserviceaccount.com' --role='roles/secretmanager.secretAccessor'
 ```
 3. Prepare the DB
+Connect to supabase: https://supabase.com/docs/guides/database/connecting-to-postgres#direct-connections
+Then using psql or pgAdmin:
 ```sh
-# Create an sql instance
-gcloud sql instances create project-legacy-db \
-  --database-version=POSTGRES_14 \
-  --tier=db-f1-micro \
-  --region=asia-southeast1 \
-  --storage-size=10
-# Set the root password
-gcloud sql users set-password postgres \
-  --instance=project-legacy-db \
-  --password=[DB_ROOT_PASSWORD]
-# Active cloud sql proxy, get the connection name from Google Cloud dashboard
-# It looks like this: project-name:asia-southeast1:project-legacy-db
-cloud_sql_proxy -instances=[CONNECTION NAME]=tcp:127.0.0.1:5678
-# Connect to db
-psql -h 127.0.0.1 -p 5678 -U postgres
-
 ##################################################################
 # Copy paste the query in data/seed.sql, edit the PASSWORD field #
 ##################################################################
