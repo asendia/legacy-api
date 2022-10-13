@@ -44,7 +44,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 			FullName:           "Sejiwo User",
 			InactiveAt:         msg.InactiveAt.Local().Format("2006-01-02"),
 			TestamentReceivers: msg.EmailReceivers,
-			ExtensionURL:       fmt.Sprintf("https://sejiwo.com/?action=extend-message&id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
+			ExtensionURL:       fmt.Sprintf("https://sejiwo.com/extend?id=%s&secret=%s", msg.ID, msg.ExtensionSecret),
 		}
 		htmlContent, err := mail.GenerateReminderEmail(param)
 		if err != nil {

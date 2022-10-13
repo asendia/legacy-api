@@ -1,7 +1,6 @@
 package mail
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -115,7 +114,7 @@ func generateMultipleEmailsMultipleTos(toList []string, vendorID string) ([]Mail
 			ExtensionURL: "https://sejiwo.com/extend?id=some-id&secret=some-secret"}
 		htmlContent, err := GenerateReminderEmail(param)
 		if err != nil {
-			return mails, errors.New(fmt.Sprintf("Cannot generate email from template: %v", err))
+			return mails, fmt.Errorf("Cannot generate email from template: %v", err)
 		}
 		mails = append(mails, MailItem{
 			From: MailAddress{
@@ -142,10 +141,10 @@ func generateSingleEmailMultipleTos(toList []string, vendorID string) ([]MailIte
 		FullName:              "Sejiwo Team",
 		EmailCreator:          "noreply@sejiwo.com",
 		MessageContentPerLine: []string{"Line 1", "Line 2", "Line 3"},
-		UnsubscribeURL:        "https://sejiwo.com/?action=unsubscribe&id=some-id&secret=some-secret"}
+		UnsubscribeURL:        "https://sejiwo.com/unsubscribe?id=some-id&secret=some-secret"}
 	htmlContent, err := GenerateTestamentEmail(param)
 	if err != nil {
-		return mails, errors.New(fmt.Sprintf("Cannot generate email from template: %v", err))
+		return mails, fmt.Errorf("Cannot generate email from template: %v", err)
 	}
 	tos := []MailAddress{}
 	for id, mt := range toList {

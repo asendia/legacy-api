@@ -46,7 +46,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 			FullName:              row.RcvEmailReceiver,
 			EmailCreator:          row.MsgEmailCreator,
 			MessageContentPerLine: strings.Split(msgContent, "\n"),
-			UnsubscribeURL:        fmt.Sprintf("https://sejiwo.com/?action=unsubscribe-message&id=%s&secret=%s", row.MsgID, row.RcvUnsubscribeSecret),
+			UnsubscribeURL:        fmt.Sprintf("https://sejiwo.com/unsubscribe?id=%s&secret=%s", row.MsgID, row.RcvUnsubscribeSecret),
 			HowToDecrypt:          howToDecrypt,
 		}
 		mmsgHTML, err := mail.GenerateTestamentEmail(msgParam)

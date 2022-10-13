@@ -1,7 +1,6 @@
 package mail
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -27,7 +26,7 @@ func TestGenerateReminderEmail(t *testing.T) {
 
 func TestGenerateTestamentEmail(t *testing.T) {
 	param := TestamentEmailParams{
-		Title:        fmt.Sprintf("A sejiwo.com message sent on behalf of Asendia Mayco"),
+		Title:        "A sejiwo.com message sent on behalf of Asendia Mayco",
 		FullName:     "Asendia Mayco",
 		EmailCreator: "noreply@sejiwo.com",
 		MessageContentPerLine: strings.Split(`
