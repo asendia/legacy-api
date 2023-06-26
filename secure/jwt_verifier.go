@@ -45,7 +45,7 @@ func VerifyNetlifyJWT(c HTTPClient, authHeader string) (jwtRes JWTResponse, err 
 		return jwtRes, err
 	}
 	req.Header.Set("authorization", "Bearer "+authHeaderSlice[1])
-	req.Header.Set("accept-encoding", "gzip, deflate, br")
+	req.Header.Set("accept-encoding", "identity")
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("referer", "https://sejiwo.com/")
 	req.Header.Set("authority", "sejiwo.com")
