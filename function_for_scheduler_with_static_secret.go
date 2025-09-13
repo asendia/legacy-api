@@ -37,20 +37,15 @@ func CloudFunctionForSchedulerWithStaticSecret(ctx context.Context, m PubSubMess
 	switch action {
 	case "send-reminder-messages":
 		res, err = a.SendReminderMessages()
-		break
 	case "send-testaments":
 		res, err = a.SendTestamentsOfInactiveMessages()
-		break
 	case "select-messages-need-reminding":
 		res, err = a.SelectMessagesNeedReminding()
-		break
 	case "select-inactive-messages":
 		res, err = a.SelectInactiveMessages()
-		break
 	default:
-		err = errors.New("Invalid Action")
+		err = errors.New("invalid Action")
 		res.StatusCode = http.StatusNotFound
-		break
 	}
 	// Handle controller error
 	if err != nil {

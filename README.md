@@ -2,8 +2,8 @@
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
 ## Prerequisites
-- [Go 1.19](https://go.dev/doc/install)
-- [Postgresql 14.1](https://www.postgresql.org/download/)
+- [Go 1.24](https://go.dev/doc/install)
+- [Postgresql 15.1](https://www.postgresql.org/download/)
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
 - [gcloud cli](https://cloud.google.com/sdk/docs/install) (Optional, for deploying the api to Google Cloud Platform)
@@ -61,10 +61,6 @@ echo -n "PUT_THE_MAILJET_API_KEY_HERE" | \
 # To send emails
 echo -n "PUT_THE_MAILJET_SECRET_KEY_HERE" | \
   gcloud secrets create "mailjet_secret_key" --replication-policy "automatic" --data-file -
-
-# To send emails
-echo -n "PUT_THE_SENDGRID_API_KEY_HERE" | \
-  gcloud secrets create "sendgrid_api_key" --replication-policy "automatic" --data-file -
 ```
 2. Give the secret manager read access to your project service account.
 ```sh
@@ -94,7 +90,7 @@ cp .env-prod-template.yaml .env-prod.yaml
 gcloud run deploy legacy-api --source . \
   --region=asia-southeast1 --allow-unauthenticated --timeout 15s \
   --min-instances 0 --max-instances 100 --cpu 1 --memory 128Mi \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
+  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
   --env-vars-file .env-prod.yaml --update-labels service=legacy --tag=main
 ```
 5. Deploy the scheduler
@@ -116,8 +112,8 @@ cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
 gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-  --region asia-southeast1 --runtime go119 --memory 128Mi --timeout 15s --gen2 \
+  --region asia-southeast1 --runtime go124 --memory 128Mi --timeout 15s --gen2 \
   --update-labels service=legacy --max-instances 10 \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
+  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
   --env-vars-file .env-prod-cloud-function.yaml
 ```

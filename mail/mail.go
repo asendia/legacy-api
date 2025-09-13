@@ -1,7 +1,6 @@
 package mail
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"net/mail"
@@ -46,17 +45,11 @@ func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
 	vendorMailjet := Mailjet{APIKey: os.Getenv("MAILJET_API_KEY"),
 		SecretKey:   os.Getenv("MAILJET_SECRET_KEY"),
 		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
-	vendorSendgrid := Sendgrid{APIKey: os.Getenv("SENDGRID_API_KEY"),
-		SandboxMode: os.Getenv("ENVIRONMENT") != "prod"}
 	cfg := SendMailConfig{
 		Vendors: []SendMailVendorConfig{
 			{
 				Vendor:     &vendorMailjet,
 				DailyLimit: 200,
-			},
-			{
-				Vendor:     &vendorSendgrid,
-				DailyLimit: 100,
 			},
 		},
 	}
@@ -91,7 +84,7 @@ func SendEmails(mails []MailItem) (res []SendEmailsResponse) {
 					emailTos = append(emailTos, mt.Email)
 				}
 				res = append(res, SendEmailsResponse{
-					Err:    errors.New(fmt.Sprintf("Critical error from vendor id: %d", id)),
+					Err:    fmt.Errorf("critical error from vendor id: %d", id),
 					Emails: emailTos,
 				})
 			}
@@ -120,7 +113,7 @@ func ParseAddressList(list string) (addrList []*mail.Address, err error) {
 		err := parseValidAddress(addr.Address)
 		if err != nil {
 			return addrList,
-				errors.New(fmt.Sprintf("Email: %s at index %d is invalid with error: %+v", addr.Address, id, err))
+				fmt.Errorf("email: %s at index %d is invalid with error: %+v", addr.Address, id, err)
 		}
 	}
 	return
@@ -130,10 +123,10 @@ func parseValidAddress(validAddress string) error {
 	atPos := strings.LastIndex(validAddress, "@")
 	domainName := validAddress[atPos+1:]
 	if !strings.Contains(domainName, ".") {
-		return errors.New(fmt.Sprintf("Email: %s domain doesn't contain dot (.)", validAddress))
+		return fmt.Errorf("email: %s domain doesn't contain dot (.)", validAddress)
 	}
 	return nil
 }
 
-var ErrMailNoAPIKey = errors.New("Email provider requires API key(s), set in the " +
+var ErrMailNoAPIKey = fmt.Errorf("email provider requires API key(s), set in the " +
 	"[PROVIDER]_API_KEY environment variable")

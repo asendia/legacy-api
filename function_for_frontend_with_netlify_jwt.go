@@ -60,10 +60,8 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 			break
 		}
 		res, err = a.InsertMessage(jwtRes, p)
-		break
 	case "select-messages":
 		res, err = a.SelectMessagesByEmailCreator(jwtRes)
-		break
 	case "update-message":
 		p, errP := api.ParseReqUpdateMessage(r)
 		if errP != nil {
@@ -71,7 +69,6 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 			break
 		}
 		res, err = a.UpdateMessage(jwtRes, p)
-		break
 	case "delete-message":
 		p, errP := api.ParseReqDeleteMessage(r)
 		if errP != nil {
@@ -79,11 +76,9 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 			break
 		}
 		res, err = a.DeleteMessage(jwtRes, p.ID)
-		break
 	default:
-		err = errors.New("Invalid Action")
+		err = errors.New("invalid Action")
 		res.StatusCode = http.StatusNotFound
-		break
 	}
 	w.Header().Set("Content-Type", "application/json")
 	// Handle controller error

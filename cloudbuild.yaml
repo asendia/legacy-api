@@ -12,7 +12,6 @@ steps:
       - DB_PASSWORD
       - MAILJET_API_KEY
       - MAILJET_SECRET_KEY
-      - SENDGRID_API_KEY
       - SUPABASE_SSL_CERTIFICATE
   - id: deploy-legacy-api
     name: gcr.io/cloud-builders/gcloud
@@ -38,19 +37,17 @@ steps:
         cp .env-prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
         gcloud functions deploy legacy-api-scheduler \
           --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-          --region asia-southeast1 --runtime go119 --memory 128Mi --timeout 15s --gen2 \
+          --region asia-southeast1 --runtime go124 --memory 128Mi --timeout 15s --gen2 \
           --update-labels service=legacy --max-instances 10 \
-          --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,SENDGRID_API_KEY=sendgrid_api_key:latest \
+          --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
           --env-vars-file .env-prod-cloud-function.yaml
 availableSecrets:
   secretManager:
-    - versionName: projects/548884499300/secrets/db_password_tester/versions/latest
+    - versionName: projects/548884499300/secrets/db_password/versions/latest
       env: DB_PASSWORD
     - versionName: projects/548884499300/secrets/mailjet_api_key/versions/latest
       env: MAILJET_API_KEY
     - versionName: projects/548884499300/secrets/mailjet_secret_key/versions/latest
       env: MAILJET_SECRET_KEY
-    - versionName: projects/548884499300/secrets/sendgrid_api_key/versions/latest
-      env: SENDGRID_API_KEY
     - versionName: projects/548884499300/secrets/supabase_ssl_certificate/versions/latest
       env: SUPABASE_SSL_CERTIFICATE

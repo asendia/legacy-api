@@ -51,15 +51,13 @@ func CloudFunctionForFrontendWithUserSecret(w http.ResponseWriter, r *http.Reque
 	switch action {
 	case "extend-message":
 		res, err = a.ExtendMessageInactiveAt(secret, messageID)
-		break
 	case "unsubscribe-message":
 		res, err = a.UnsubscribeMessage(secret, messageID)
-		break
 	default:
-		err = errors.New("Invalid Action")
+		err = errors.New("invalid Action")
 		res.StatusCode = http.StatusNotFound
 		res.ResponseMsg = err.Error()
-		break
+
 	}
 	w.Header().Set("Content-Type", "application/json")
 	// Handle controller error
@@ -87,7 +85,7 @@ func VerifyQueryString(r *http.Request) (secret string, id uuid.UUID, err error)
 	}
 	secret = q.Get("secret")
 	if len(secret) != api.ExtensionSecretLength {
-		return secret, id, errors.New("Invalid secret")
+		return secret, id, errors.New("invalid secret")
 	}
 	return secret, id, err
 }

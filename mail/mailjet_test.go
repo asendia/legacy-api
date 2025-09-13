@@ -63,7 +63,7 @@ func TestMailjetMultipleEmailsMultipleTos(t *testing.T) {
 		return
 	}
 	if err != nil {
-		t.Fatalf("Sendgrid error %+v\n", err)
+		t.Fatalf("Mailjet error %+v\n", err)
 	}
 	if res[1].Err == nil {
 		t.Fatal("Email should be invalid")
@@ -85,7 +85,7 @@ func TestMailjetSingleEmailMultipleTos(t *testing.T) {
 		return
 	}
 	if err != nil {
-		t.Fatalf("Sendgrid error %+v\n", err)
+		t.Fatalf("Mailjet error %+v\n", err)
 	}
 	if res[0].Err == nil {
 		t.Fatal("Email should be invalid")

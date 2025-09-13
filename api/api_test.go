@@ -56,14 +56,6 @@ func deleteAndCreateTableMessages(ctx context.Context, tx pgx.Tx) error {
 	if _, err := tx.Exec(ctx, string(qCreateTable)); err != nil {
 		return err
 	}
-	// Create the tables
-	qGrantRole, err := os.ReadFile("../data/schema_test.sql")
-	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, string(qGrantRole)); err != nil {
-		return err
-	}
 	return nil
 }
 
