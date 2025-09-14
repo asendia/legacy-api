@@ -7,23 +7,27 @@ Sejiwo is an automated digital will service that delivers your final message to 
 
 ```mermaid
 flowchart LR
-    A[👤 User visits<br/>sejiwo.com] --> B[📝 Write will<br/>message]
-    B --> C[📧 Add recipients<br/>Max 3 people]
-    C --> D[⏱️ Set timing<br/>preferences]
-    D --> E[🔒 Encrypted &<br/>stored safely]
+    A[User Creates Will] --> B[Set Recipients]
+    B --> C[Configure Timing]
+    C --> D[System Activated]
     
-    E --> F{📅 Time passes}
-    F --> G[📬 Reminder<br/>emails sent]
-    G --> H{🤔 Response?}
-    H -->|✅ Yes| I[🔄 Reset timer]
-    H -->|❌ No| J[📨 Auto-deliver<br/>to recipients]
+    D --> E{Periodic Check}
+    E -->|User Responds| F[Timer Reset]
+    E -->|No Response| G[Auto Delivery]
     
-    I --> F
-    J --> K[💌 Recipients get<br/>final message]
+    F --> E
+    G --> H[Message Delivered]
     
-    style A fill:#e1f5fe
-    style K fill:#f3e5f5
-    style J fill:#fff3e0
+    style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
+    style B fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#ffffff
+    style C fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#ffffff
+    style D fill:#06b6d4,stroke:#0891b2,stroke-width:2px,color:#ffffff
+    style E fill:#64748b,stroke:#475569,stroke-width:2px,color:#ffffff
+    style F fill:#10b981,stroke:#059669,stroke-width:2px,color:#ffffff
+    style G fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#ffffff
+    style H fill:#ec4899,stroke:#db2777,stroke-width:2px,color:#ffffff
+    
+    classDef default font-size:14px,font-weight:500
 ```
 
 ### Key Features:
@@ -40,90 +44,84 @@ flowchart LR
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        WEB[🌐 sejiwo.com Frontend<br/>Netlify Identity JWT]
+    subgraph CLIENT ["📱 Client"]
+        WEB[Frontend<br/>sejiwo.com]
     end
     
-    subgraph "API Gateway Layer"
-        LB[⚖️ Load Balancer<br/>Google Cloud Run]
-        MAIN[🚀 main.go HTTP Server<br/>Port 8080]
+    subgraph GATEWAY ["🌐 API Gateway"]
+        LB[Load Balancer]
+        MAIN[HTTP Server<br/>:8080]
     end
     
-    subgraph "API Endpoints"
-        API1[🔐 /legacy-api<br/>JWT Authentication]
-        API2[🔑 /legacy-api-secret<br/>User Secret Auth]
-        API3[⏰ /legacy-api-scheduler<br/>Static Secret Auth]
+    subgraph API ["🔌 Endpoints"]
+        API1[/legacy-api<br/>JWT Auth]
+        API2[/legacy-api-secret<br/>User Secret]
+        API3[/legacy-api-scheduler<br/>Static Secret]
     end
     
-    subgraph "Business Logic Layer"
-        FRONTEND[🎯 Frontend APIs<br/>CRUD Operations]
-        SCHEDULER[📅 Scheduler APIs<br/>Automated Tasks]
+    subgraph LOGIC ["⚡ Business Logic"]
+        FRONTEND[Frontend APIs]
+        SCHEDULER[Scheduler APIs]
     end
     
-    subgraph "Data Layer"
-        DB[(🗄️ PostgreSQL Database<br/>Supabase)]
-        CACHE[💾 Connection Pool<br/>pgx/v5]
+    subgraph DATA ["💾 Data Layer"]
+        DB[(PostgreSQL<br/>Database)]
+        CACHE[Connection<br/>Pool]
     end
     
-    subgraph "External Services"
-        MAILJET[📧 Mailjet<br/>Email Service]
-        SECRETS[🔐 Google Cloud<br/>Secret Manager]
-        PUBSUB[📨 Google Cloud<br/>Pub/Sub]
+    subgraph EXTERNAL ["🔗 External Services"]
+        MAILJET[Email<br/>Service]
+        SECRETS[Secret<br/>Manager]
+        PUBSUB[Message<br/>Queue]
     end
     
-    subgraph "Security Layer"
-        ENC[🔒 AES Encryption<br/>Message Content]
-        JWT[🎫 JWT Verifier<br/>Netlify Identity]
-        SEC[🔑 Secret Generator<br/>Extension & Unsubscribe]
+    subgraph SECURITY ["🔒 Security"]
+        ENC[AES<br/>Encryption]
+        JWT[JWT<br/>Verifier]
+        SEC[Secret<br/>Generator]
     end
     
-    subgraph "Scheduled Jobs"
-        CRON1[⏰ Daily 19:22<br/>Send Reminders]
-        CRON2[⏰ Daily 19:38<br/>Send Testaments]
+    subgraph CRON ["⏰ Automation"]
+        CRON1[Daily Reminders<br/>19:22]
+        CRON2[Send Testaments<br/>19:38]
     end
     
-    %% User Flow
+    %% Primary Flow
     WEB --> LB
     LB --> MAIN
-    MAIN --> API1
-    MAIN --> API2
-    MAIN --> API3
+    MAIN --> API1 & API2 & API3
     
-    %% API Routes
-    API1 --> FRONTEND
-    API2 --> FRONTEND
+    API1 & API2 --> FRONTEND
     API3 --> SCHEDULER
     
-    %% Business Logic
-    FRONTEND --> DB
-    SCHEDULER --> DB
-    FRONTEND --> ENC
-    SCHEDULER --> ENC
+    FRONTEND & SCHEDULER --> DB
+    FRONTEND & SCHEDULER --> ENC
+    
+    %% External Connections
+    DB -.-> CACHE
+    FRONTEND & SCHEDULER --> MAILJET
+    ENC & MAILJET & DB --> SECRETS
     
     %% Authentication
     API1 --> JWT
-    JWT --> WEB
-    
-    %% Data Flow
-    DB --> CACHE
-    FRONTEND --> MAILJET
-    SCHEDULER --> MAILJET
-    
-    %% Secrets
-    ENC --> SECRETS
-    MAILJET --> SECRETS
-    DB --> SECRETS
+    JWT -.-> WEB
     
     %% Scheduling
-    CRON1 --> PUBSUB
-    CRON2 --> PUBSUB
+    CRON1 & CRON2 --> PUBSUB
     PUBSUB --> API3
     
-    style WEB fill:#e3f2fd
-    style DB fill:#f3e5f5
-    style MAILJET fill:#fff3e0
-    style SECRETS fill:#ffebee
-    style ENC fill:#e8f5e8
+    %% Modern Styling
+    style CLIENT fill:#1e293b,stroke:#334155,stroke-width:2px,color:#f1f5f9
+    style GATEWAY fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f1f5f9
+    style API fill:#164e63,stroke:#0891b2,stroke-width:2px,color:#f0f9ff
+    style LOGIC fill:#3730a3,stroke:#4f46e5,stroke-width:2px,color:#f0f9ff
+    style DATA fill:#7c2d12,stroke:#ea580c,stroke-width:2px,color:#fef7ed
+    style EXTERNAL fill:#166534,stroke:#16a34a,stroke-width:2px,color:#f0fdf4
+    style SECURITY fill:#991b1b,stroke:#dc2626,stroke-width:2px,color:#fef2f2
+    style CRON fill:#6b21a8,stroke:#9333ea,stroke-width:2px,color:#faf5ff
+    
+    classDef nodeDefault font-size:12px,font-weight:600
+    classDef default stroke-width:1.5px
 ```
 
 ## Database Schema
@@ -131,35 +129,35 @@ graph TB
 ```mermaid
 erDiagram
     EMAILS {
-        varchar email PK "Max 70 chars"
-        timestamp created_at "Default CURRENT_TIMESTAMP"
-        boolean is_active "Default TRUE"
+        varchar email PK "Primary identifier"
+        timestamp created_at "Registration time"
+        boolean is_active "Account status"
     }
     
     MESSAGES {
-        uuid id PK "gen_random_uuid()"
-        varchar email_creator FK "Max 70 chars"
-        timestamp created_at "Default CURRENT_TIMESTAMP"
-        varchar content_encrypted "Max 4000 chars, AES encrypted"
-        integer inactive_period_days "30-360 days, default 60"
-        integer reminder_interval_days "15-30 days, default 15"
-        boolean is_active "Default TRUE"
-        char extension_secret "69 chars"
-        date inactive_at "Calculated field"
-        date next_reminder_at "Calculated field"
-        integer sent_counter "Default 0, max 3"
+        uuid id PK "Message identifier"
+        varchar email_creator FK "Message author"
+        timestamp created_at "Creation time"
+        varchar content_encrypted "Encrypted content"
+        integer inactive_period_days "Delivery delay"
+        integer reminder_interval_days "Reminder frequency"
+        boolean is_active "Message status"
+        char extension_secret "Extension token"
+        date inactive_at "Delivery date"
+        date next_reminder_at "Next reminder"
+        integer sent_counter "Delivery attempts"
     }
     
-    MESSAGES_EMAIL_RECEIVERS {
-        uuid message_id FK
-        varchar email_receiver FK "Max 70 chars"
-        boolean is_unsubscribed "Default FALSE"
-        char unsubscribe_secret "69 chars"
+    RECEIVERS {
+        uuid message_id FK "Message reference"
+        varchar email_receiver FK "Recipient email"
+        boolean is_unsubscribed "Subscription status"
+        char unsubscribe_secret "Unsubscribe token"
     }
     
-    EMAILS ||--o{ MESSAGES : "email_creator"
-    EMAILS ||--o{ MESSAGES_EMAIL_RECEIVERS : "email_receiver"
-    MESSAGES ||--o{ MESSAGES_EMAIL_RECEIVERS : "message_id"
+    EMAILS ||--o{ MESSAGES : creates
+    EMAILS ||--o{ RECEIVERS : receives
+    MESSAGES ||--o{ RECEIVERS : "sent to"
 ```
 
 ### Key Technical Features:
