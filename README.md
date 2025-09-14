@@ -1,6 +1,179 @@
 # legacy-api
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
+## How Sejiwo Works
+
+Sejiwo is an automated digital will service that delivers your final message to loved ones only if you become unresponsive.
+
+```mermaid
+flowchart LR
+    A[👤 User visits<br/>sejiwo.com] --> B[📝 Write will<br/>message]
+    B --> C[📧 Add recipients<br/>Max 3 people]
+    C --> D[⏱️ Set timing<br/>preferences]
+    D --> E[🔒 Encrypted &<br/>stored safely]
+    
+    E --> F{📅 Time passes}
+    F --> G[📬 Reminder<br/>emails sent]
+    G --> H{🤔 Response?}
+    H -->|✅ Yes| I[🔄 Reset timer]
+    H -->|❌ No| J[📨 Auto-deliver<br/>to recipients]
+    
+    I --> F
+    J --> K[💌 Recipients get<br/>final message]
+    
+    style A fill:#e1f5fe
+    style K fill:#f3e5f5
+    style J fill:#fff3e0
+```
+
+### Key Features:
+- ⏰ **Automatic Delivery**: Messages delivered only when you don't respond to reminders
+- 🔒 **Secure**: AES encrypted message storage
+- 📧 **Flexible Recipients**: Send to up to 3 people
+- 🔄 **Stay in Control**: Easy to postpone or cancel anytime
+- ⚡ **Set and Forget**: Fully automated once configured
+
+<details>
+<summary><strong>📋 Technical Architecture Details</strong></summary>
+
+## System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        WEB[🌐 sejiwo.com Frontend<br/>Netlify Identity JWT]
+    end
+    
+    subgraph "API Gateway Layer"
+        LB[⚖️ Load Balancer<br/>Google Cloud Run]
+        MAIN[🚀 main.go HTTP Server<br/>Port 8080]
+    end
+    
+    subgraph "API Endpoints"
+        API1[🔐 /legacy-api<br/>JWT Authentication]
+        API2[🔑 /legacy-api-secret<br/>User Secret Auth]
+        API3[⏰ /legacy-api-scheduler<br/>Static Secret Auth]
+    end
+    
+    subgraph "Business Logic Layer"
+        FRONTEND[🎯 Frontend APIs<br/>CRUD Operations]
+        SCHEDULER[📅 Scheduler APIs<br/>Automated Tasks]
+    end
+    
+    subgraph "Data Layer"
+        DB[(🗄️ PostgreSQL Database<br/>Supabase)]
+        CACHE[💾 Connection Pool<br/>pgx/v5]
+    end
+    
+    subgraph "External Services"
+        MAILJET[📧 Mailjet<br/>Email Service]
+        SECRETS[🔐 Google Cloud<br/>Secret Manager]
+        PUBSUB[📨 Google Cloud<br/>Pub/Sub]
+    end
+    
+    subgraph "Security Layer"
+        ENC[🔒 AES Encryption<br/>Message Content]
+        JWT[🎫 JWT Verifier<br/>Netlify Identity]
+        SEC[🔑 Secret Generator<br/>Extension & Unsubscribe]
+    end
+    
+    subgraph "Scheduled Jobs"
+        CRON1[⏰ Daily 19:22<br/>Send Reminders]
+        CRON2[⏰ Daily 19:38<br/>Send Testaments]
+    end
+    
+    %% User Flow
+    WEB --> LB
+    LB --> MAIN
+    MAIN --> API1
+    MAIN --> API2
+    MAIN --> API3
+    
+    %% API Routes
+    API1 --> FRONTEND
+    API2 --> FRONTEND
+    API3 --> SCHEDULER
+    
+    %% Business Logic
+    FRONTEND --> DB
+    SCHEDULER --> DB
+    FRONTEND --> ENC
+    SCHEDULER --> ENC
+    
+    %% Authentication
+    API1 --> JWT
+    JWT --> WEB
+    
+    %% Data Flow
+    DB --> CACHE
+    FRONTEND --> MAILJET
+    SCHEDULER --> MAILJET
+    
+    %% Secrets
+    ENC --> SECRETS
+    MAILJET --> SECRETS
+    DB --> SECRETS
+    
+    %% Scheduling
+    CRON1 --> PUBSUB
+    CRON2 --> PUBSUB
+    PUBSUB --> API3
+    
+    style WEB fill:#e3f2fd
+    style DB fill:#f3e5f5
+    style MAILJET fill:#fff3e0
+    style SECRETS fill:#ffebee
+    style ENC fill:#e8f5e8
+```
+
+## Database Schema
+
+```mermaid
+erDiagram
+    EMAILS {
+        varchar email PK "Max 70 chars"
+        timestamp created_at "Default CURRENT_TIMESTAMP"
+        boolean is_active "Default TRUE"
+    }
+    
+    MESSAGES {
+        uuid id PK "gen_random_uuid()"
+        varchar email_creator FK "Max 70 chars"
+        timestamp created_at "Default CURRENT_TIMESTAMP"
+        varchar content_encrypted "Max 4000 chars, AES encrypted"
+        integer inactive_period_days "30-360 days, default 60"
+        integer reminder_interval_days "15-30 days, default 15"
+        boolean is_active "Default TRUE"
+        char extension_secret "69 chars"
+        date inactive_at "Calculated field"
+        date next_reminder_at "Calculated field"
+        integer sent_counter "Default 0, max 3"
+    }
+    
+    MESSAGES_EMAIL_RECEIVERS {
+        uuid message_id FK
+        varchar email_receiver FK "Max 70 chars"
+        boolean is_unsubscribed "Default FALSE"
+        char unsubscribe_secret "69 chars"
+    }
+    
+    EMAILS ||--o{ MESSAGES : "email_creator"
+    EMAILS ||--o{ MESSAGES_EMAIL_RECEIVERS : "email_receiver"
+    MESSAGES ||--o{ MESSAGES_EMAIL_RECEIVERS : "message_id"
+```
+
+### Key Technical Features:
+- **🏗️ Architecture**: Go HTTP server on Google Cloud Run
+- **🔐 Security**: AES encryption, JWT authentication, secret management
+- **📊 Database**: PostgreSQL with optimized indexes for queries
+- **📧 Email**: Mailjet integration with HTML templates
+- **⏰ Scheduling**: Google Cloud Scheduler + Pub/Sub
+- **🔄 Scalability**: Stateless design, connection pooling
+- **📈 Monitoring**: Structured logging and error handling
+- **🛡️ Reliability**: Transaction-based operations, retry logic
+
+</details>
+
 ## Prerequisites
 - [Go 1.24](https://go.dev/doc/install)
 - [Postgresql 15.1](https://www.postgresql.org/download/)
