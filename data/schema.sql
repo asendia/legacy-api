@@ -49,9 +49,3 @@ CREATE INDEX receivers_is_unsubscribed ON public.messages_email_receivers USING 
 -- For UpdateMessagesEmailReceiver
 CREATE INDEX receivers_id_is_unsubscribed ON public.messages_email_receivers USING btree (message_id,
   unsubscribe_secret);
-
-GRANT INSERT, SELECT, UPDATE, DELETE ON public.emails TO project_legacy_admin;
-
-GRANT INSERT, SELECT, UPDATE, DELETE ON public.messages TO project_legacy_admin;
-
-GRANT INSERT, SELECT, UPDATE, DELETE ON public.messages_email_receivers TO project_legacy_admin;

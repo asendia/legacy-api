@@ -41,7 +41,7 @@ flowchart LR
 
 ## Prerequisites
 - [Go 1.24](https://go.dev/doc/install)
-- [Postgresql 15.1](https://www.postgresql.org/download/)
+- [Postgresql 17.6](https://www.postgresql.org/download/)
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
 - [gcloud cli](https://cloud.google.com/sdk/docs/install) (Optional, for deploying the api to Google Cloud Platform)
