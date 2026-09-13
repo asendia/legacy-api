@@ -32,7 +32,7 @@ Do not put secrets in Git, the frontend, Netlify public variables, or screenshot
 
 The checked live service names are `legacy-api` and `legacy-api-scheduler`, in project `monarch-public`, region `asia-southeast1`. The Netlify project is `sejiwo` and uses `asendia/legacy-web`. Production settings were read only during development.
 
-1. Back up the database. Apply `data/migrations/001_telegram.sql` once to the production database. Do not run `data/schema.sql`, seed files, or tests against production. Test the migration on a separate database first.
+1. Back up the database. Apply `data/migrations/001_telegram.sql`, then `data/migrations/002_email_retries.sql`, once to the production database. If 001 is already applied, apply only 002. Do not run `data/schema.sql`, seed files, or tests against production. Test the migrations on a separate database first.
 2. Confirm that the backend database role can read and write the six new tables and use `telegram_deliveries_id_seq`. Row-level security blocks the Supabase public API. A table owner or a role with `BYPASSRLS` can use the tables. If the app uses another database role, give only that role the required table grants and row policies. Do not give access to `anon` or `authenticated`, and do not disable row-level security.
 3. Deploy the backend PR with `TELEGRAM_ENABLED` unset or `false` on both services. Check existing Google login, message save, extension, and email delivery.
 4. Add these settings. Keep all existing database and Mailjet settings.
@@ -66,7 +66,11 @@ Failed requests wait at least one hour, or longer if Telegram asks for it. HTTP 
 
 Telegram does not offer a client idempotency key for `sendMessage`. A timeout or a crash after Telegram accepts a message but before the database commits can cause a duplicate on retry. Database locks prevent concurrent scheduler runs from sending the same pending row. This is at-least-once delivery, not a guarantee of exactly one copy.
 
-With Telegram enabled, final email dates advance once after all recipient emails succeed. Stored receipts skip successful recipients on a partial retry. Without Telegram enabled, the existing email flow stays available without the new tables; it advances once per message after a successful email. A crash before receipts commit can still repeat email. Monitor repeated email failures separately.
+With Telegram enabled, final email dates advance once after each recipient succeeds or reaches ten attempts for that cycle. Retries wait one hour. New recipients have priority over retries, and completed or delayed work does not use batch slots. A stopped attempt does not disable the recipient address. The next delivery cycle can try that address again. A crash before receipts commit can still repeat email. Without Telegram enabled, the existing email flow stays available without the new tables; it advances once per message after a successful email.
+
+Monitor `email_delivery_receipts` rows where `stopped_at IS NOT NULL AND sent_at IS NULL`. These are failed deliveries, not successful receipts. Check the provider and the address before you plan another delivery. The `attempts` column records attempts for the current message, recipient, extension secret, and cycle date. Existing successful receipts remain valid after migration 002.
+
+Email and Telegram reminders use the same selected batch. Telegram queue rows are stored before email success can advance the reminder date.
 
 Check queue counts without reading private content:
 

@@ -13,34 +13,44 @@ import (
 
 // Machine facing queries
 func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, err error) {
-	if err = a.queueTelegram("final"); err != nil {
-		return res, err
-	}
 	queries := data.New(a.Tx)
-	rows, err := queries.SelectInactiveMessages(a.Context)
+	receiptsEnabled := os.Getenv("TELEGRAM_ENABLED") == "true"
+	var rows []data.SelectInactiveMessagesRow
+	if receiptsEnabled {
+		rows, err = queries.SelectPendingEmails(a.Context)
+	} else {
+		rows, err = queries.SelectInactiveMessages(a.Context)
+	}
 	if err != nil {
 		res.StatusCode = http.StatusInternalServerError
 		res.ResponseMsg = "Failed to select inactive messages"
 		return
 	}
+	if err = a.queueTelegramFinal(rows); err != nil {
+		return res, err
+	}
+	// Record each selected attempt, including local preparation failures.
+	if receiptsEnabled {
+		for _, row := range rows {
+			if _, err = a.Tx.Exec(a.Context, `INSERT INTO email_delivery_receipts
+                (message_id,email_receiver,extension_secret,cycle_date,sent_at,attempts,next_attempt_at,stopped_at)
+                VALUES($1,$2,$3,$4,NULL,1,now()+interval '1 hour',NULL)
+                ON CONFLICT(message_id,email_receiver,extension_secret,cycle_date) DO UPDATE
+                SET attempts=email_delivery_receipts.attempts+1,next_attempt_at=now()+interval '1 hour',
+                stopped_at=CASE WHEN email_delivery_receipts.attempts+1>=10 THEN now() ELSE NULL END`,
+				row.MsgID, row.RcvEmailReceiver, row.MsgExtensionSecret, row.MsgInactiveAt); err != nil {
+				return res, err
+			}
+		}
+	}
 	mailItems := []mail.MailItem{}
 	sentRows := []data.SelectInactiveMessagesRow{}
-	receiptsEnabled := os.Getenv("TELEGRAM_ENABLED") == "true"
 	expected := map[uuid.UUID]data.SelectInactiveMessagesRow{}
 	for _, row := range rows {
 		expected[row.MsgID] = row
 	}
 	messageContentMap := map[uuid.UUID]string{}
 	for _, row := range rows {
-		if receiptsEnabled {
-			var sent bool
-			if err := a.Tx.QueryRow(a.Context, `SELECT EXISTS(SELECT 1 FROM email_delivery_receipts WHERE message_id=$1 AND email_receiver=$2 AND extension_secret=$3 AND cycle_date=$4)`, row.MsgID, row.RcvEmailReceiver, row.MsgExtensionSecret, row.MsgInactiveAt).Scan(&sent); err != nil {
-				return res, err
-			}
-			if sent {
-				continue
-			}
-		}
 		msgContent := messageContentMap[row.MsgID]
 		if msgContent == "" {
 			dMsgContent, err := DecryptMessageContent(row.MsgContentEncrypted, os.Getenv("ENCRYPTION_KEY"))
@@ -99,7 +109,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 		}
 		success[row.MsgID]++
 		if receiptsEnabled {
-			if _, err := a.Tx.Exec(a.Context, `INSERT INTO email_delivery_receipts(message_id,email_receiver,extension_secret,cycle_date) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, row.MsgID, row.RcvEmailReceiver, row.MsgExtensionSecret, row.MsgInactiveAt); err != nil {
+			if _, err := a.Tx.Exec(a.Context, `UPDATE email_delivery_receipts SET sent_at=now(),stopped_at=NULL WHERE message_id=$1 AND email_receiver=$2 AND extension_secret=$3 AND cycle_date=$4`, row.MsgID, row.RcvEmailReceiver, row.MsgExtensionSecret, row.MsgInactiveAt); err != nil {
 				return res, err
 			}
 		}
@@ -108,7 +118,7 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 	for id, row := range expected {
 		if receiptsEnabled {
 			var pending int
-			if err := a.Tx.QueryRow(a.Context, `SELECT count(*) FROM messages_email_receivers r WHERE r.message_id=$1 AND NOT r.is_unsubscribed AND NOT EXISTS(SELECT 1 FROM email_delivery_receipts e WHERE e.message_id=r.message_id AND e.email_receiver=r.email_receiver AND e.extension_secret=$2 AND e.cycle_date=$3)`, id, row.MsgExtensionSecret, row.MsgInactiveAt).Scan(&pending); err != nil {
+			if err := a.Tx.QueryRow(a.Context, `SELECT count(*) FROM messages_email_receivers r WHERE r.message_id=$1 AND NOT r.is_unsubscribed AND NOT EXISTS(SELECT 1 FROM email_delivery_receipts e WHERE e.message_id=r.message_id AND e.email_receiver=r.email_receiver AND e.extension_secret=$2 AND e.cycle_date=$3 AND (e.sent_at IS NOT NULL OR e.stopped_at IS NOT NULL))`, id, row.MsgExtensionSecret, row.MsgInactiveAt).Scan(&pending); err != nil {
 				return res, err
 			}
 			if pending > 0 {

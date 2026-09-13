@@ -10,14 +10,14 @@ import (
 )
 
 func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
-	if err = a.queueTelegram("reminder"); err != nil {
-		return res, err
-	}
 	queries := data.New(a.Tx)
 	rows, err := queries.SelectMessagesNeedReminding(a.Context)
 	if err != nil {
 		res.StatusCode = http.StatusInternalServerError
 		res.ResponseMsg = "Failed to select messages need reminding"
+		return res, err
+	}
+	if err = a.queueTelegramReminders(rows); err != nil {
 		return res, err
 	}
 	mailItems := []mail.MailItem{}

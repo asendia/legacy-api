@@ -13,53 +13,61 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// queueTelegram is also used by queue tests. Send paths pass their selected batch directly.
 func (a *APIForScheduler) queueTelegram(kind string) error {
 	if os.Getenv("TELEGRAM_ENABLED") != "true" {
 		return nil
 	}
-	ctx := a.Context
+	queries := data.New(a.Tx)
 	if kind == "reminder" {
-		rows, err := a.Tx.Query(ctx, `SELECT m.id,m.extension_secret,m.next_reminder_at,m.email_creator,t.chat_id,m.inactive_at FROM messages m JOIN telegram_accounts t ON t.email=m.email_creator WHERE m.is_active AND m.content_encrypted<>'' AND m.next_reminder_at<=CURRENT_DATE AND m.inactive_at>=CURRENT_DATE AND t.reminders_enabled AND EXISTS (SELECT 1 FROM messages_email_receivers r WHERE r.message_id=m.id AND NOT r.is_unsubscribed) LIMIT 100`)
+		rows, err := queries.SelectMessagesNeedReminding(a.Context)
 		if err != nil {
 			return err
 		}
-		type item struct {
-			id       uuid.UUID
-			secret   string
-			cycle    time.Time
-			email    string
-			chat     int64
-			inactive time.Time
-		}
-		items := []item{}
-		for rows.Next() {
-			var i item
-			if err := rows.Scan(&i.id, &i.secret, &i.cycle, &i.email, &i.chat, &i.inactive); err != nil {
-				rows.Close()
-				return err
-			}
-			items = append(items, i)
-		}
-		err = rows.Err()
-		rows.Close()
-		if err != nil {
-			return err
-		}
-		for _, i := range items {
-			body := fmt.Sprintf("Sejiwo reminder. Your message is due after %s. Open Sejiwo to extend the date:\nhttps://sejiwo.com/extend?id=%s&secret=%s", i.inactive.Format("2006-01-02"), i.id, i.secret)
-			if err := a.insertTelegram(i.id, i.secret, kind, i.cycle, i.email, i.chat, body); err != nil {
-				return err
-			}
-		}
-		return nil
+		return a.queueTelegramReminders(rows)
 	}
-	rows, err := data.New(a.Tx).SelectInactiveMessages(ctx)
+	rows, err := queries.SelectPendingEmails(a.Context)
 	if err != nil {
 		return err
 	}
+	return a.queueTelegramFinal(rows)
+}
+
+func (a *APIForScheduler) queueTelegramReminders(rows []data.SelectMessagesNeedRemindingRow) error {
+	if os.Getenv("TELEGRAM_ENABLED") != "true" {
+		return nil
+	}
+	seen := map[uuid.UUID]bool{}
+	for _, row := range rows {
+		if seen[row.MsgID] {
+			continue
+		}
+		seen[row.MsgID] = true
+		var chatID int64
+		err := a.Tx.QueryRow(a.Context, `SELECT t.chat_id FROM telegram_accounts t
+            JOIN messages m ON m.email_creator=t.email
+            WHERE m.id=$1 AND t.reminders_enabled AND m.inactive_at>=CURRENT_DATE`, row.MsgID).Scan(&chatID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		body := fmt.Sprintf("Sejiwo reminder. Your message is due after %s. Open Sejiwo to extend the date:\nhttps://sejiwo.com/extend?id=%s&secret=%s", row.MsgInactiveAt.Format("2006-01-02"), row.MsgID, row.MsgExtensionSecret)
+		if err := a.insertTelegram(row.MsgID, row.MsgExtensionSecret, "reminder", row.MsgNextReminderAt, row.MsgEmailCreator, chatID, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *APIForScheduler) queueTelegramFinal(rows []data.SelectInactiveMessagesRow) error {
+	if os.Getenv("TELEGRAM_ENABLED") != "true" {
+		return nil
+	}
 	for _, row := range rows {
 		var chatID int64
-		err := a.Tx.QueryRow(ctx, `SELECT chat_id FROM telegram_receivers WHERE message_id=$1 AND email_receiver=$2 AND chat_id IS NOT NULL`, row.MsgID, row.RcvEmailReceiver).Scan(&chatID)
+		err := a.Tx.QueryRow(a.Context, `SELECT chat_id FROM telegram_receivers WHERE message_id=$1 AND email_receiver=$2 AND chat_id IS NOT NULL`, row.MsgID, row.RcvEmailReceiver).Scan(&chatID)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
@@ -74,7 +82,7 @@ func (a *APIForScheduler) queueTelegram(kind string) error {
 		if isProbablyClientEncrypted(row.MsgContentEncrypted) {
 			body += "\nThis text is encrypted. Use CLIENT-AES at https://sejiwo.com with the password from the writer."
 		}
-		if err := a.insertTelegram(row.MsgID, row.MsgExtensionSecret, kind, row.MsgInactiveAt, row.RcvEmailReceiver, chatID, body); err != nil {
+		if err := a.insertTelegram(row.MsgID, row.MsgExtensionSecret, "final", row.MsgInactiveAt, row.RcvEmailReceiver, chatID, body); err != nil {
 			return err
 		}
 	}
