@@ -10,6 +10,9 @@ import (
 )
 
 func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
+	if err = a.queueTelegram("reminder"); err != nil {
+		return res, err
+	}
 	queries := data.New(a.Tx)
 	rows, err := queries.SelectMessagesNeedReminding(a.Context)
 	if err != nil {
@@ -18,6 +21,7 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 		return res, err
 	}
 	mailItems := []mail.MailItem{}
+	sentIDs := []uuid.UUID{}
 	msgs := []*MessageData{}
 	msgMap := map[uuid.UUID]*MessageData{}
 	for _, row := range rows {
@@ -66,16 +70,20 @@ func (a *APIForScheduler) SendReminderMessages() (res APIResponse, err error) {
 			HtmlContent: htmlContent,
 		}
 		mailItems = append(mailItems, mail)
+		sentIDs = append(sentIDs, msg.ID)
 	}
 	if len(mailItems) == 0 {
 		res.StatusCode = http.StatusOK
 		res.ResponseMsg = "No reminder message is sent this time"
 		return
 	}
-	smResList := mail.SendEmails(mailItems)
+	smResList := a.sendEmails(mailItems)
 	for id, smRes := range smResList {
+		if id >= len(sentIDs) {
+			break
+		}
 		if smRes.Err == nil {
-			_, err := queries.UpdateMessageAfterSendingReminder(a.Context, msgs[id].ID)
+			_, err := queries.UpdateMessageAfterSendingReminder(a.Context, sentIDs[id])
 			if err != nil {
 				fmt.Printf("Failed to update message inactive_at and next_reminder_at: %v\n", err)
 				smRes.Err = err

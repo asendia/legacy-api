@@ -1,6 +1,8 @@
 # legacy-api
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
+For optional Telegram login, reminders, and final delivery, see [Telegram setup](docs/telegram.md). The feature is disabled by default. Apply its database migration before you enable it.
+
 ## How Sejiwo Works
 
 Sejiwo is an automated digital will service that delivers your final message to loved ones only if you become unresponsive.

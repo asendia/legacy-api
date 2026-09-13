@@ -19,6 +19,8 @@ func main() {
 	}
 	http.HandleFunc("/legacy-api", p.CloudFunctionForFrontendWithNetlifyJWT)
 	http.HandleFunc("/legacy-api-secret", p.CloudFunctionForFrontendWithUserSecret)
+	http.HandleFunc("/legacy-api-telegram", p.TelegramAPI)
+	http.HandleFunc("/legacy-api-telegram-webhook", p.TelegramWebhook)
 	if os.Getenv("ENVIRONMENT") != "prod" {
 		// Scheduler uses cloud function in production
 		http.HandleFunc("/legacy-api-scheduler", handleScheduler)
