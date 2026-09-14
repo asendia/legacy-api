@@ -167,3 +167,11 @@ The callback can fail after Telegram approves the request. The API returns a fix
 - `login_server_settings`: check the existing encryption key configuration without changing the key.
 
 These codes identify the failed step. They do not prove that a live login fault is fixed. After a diagnostic deployment, retry once and use the safe code to select the next check. Do not collect or publish tokens or callback query strings.
+
+### Account ID format
+
+The signed `id` claim can contain an integer or a decimal integer string. Both forms are read as the same `int64` value, without conversion through floating point. The subject remains separate and must be present. Do not use the subject as a fallback chat ID: the account key and delivery address must not change because a claim is absent.
+
+Missing, null, zero, negative, fractional, and out-of-range IDs are rejected. Token validation and verified-phone checks still apply. Identity failures log only a fixed reason (`claim_encoding`, `invalid_or_missing_id`, or `missing_subject`), never claim values.
+
+The numeric/string ID variation is also documented in the [Telegram OIDC library claim type](https://pkg.go.dev/github.com/tergeoo/telegram-go/oidc#OIDCClaims). The official [Telegram claim example](https://core.telegram.org/bots/telegram-login#user-data-structure) shows the numeric form. No extra library is required for this parsing step.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -93,13 +94,28 @@ func (c LoginClient) Exchange(ctx context.Context, code, verifier, nonce string)
 	if token.IssuedAt.After(time.Now().Add(time.Minute)) {
 		return identity, loginError("telegram_token_time")
 	}
-	if err := token.Claims(&identity); err != nil {
-		return identity, loginError("telegram_identity")
+	// Keep the public identity type numeric. Decode the signed ID without a float conversion.
+	var claims struct {
+		ID            json.Number `json:"id"`
+		Phone         string      `json:"phone_number"`
+		PhoneVerified bool        `json:"phone_number_verified"`
+		Subject       string      `json:"sub"`
 	}
-	identity.Phone = strings.TrimPrefix(identity.Phone, "+")
-	if identity.Subject == "" || identity.ID <= 0 {
+	if err := token.Claims(&claims); err != nil {
+		slog.Warn("Telegram identity rejected", "reason", "claim_encoding")
 		return Identity{}, loginError("telegram_identity")
 	}
+	id, err := claims.ID.Int64()
+	if err != nil || id <= 0 || !regexp.MustCompile(`^[1-9][0-9]*$`).MatchString(claims.ID.String()) {
+		slog.Warn("Telegram identity rejected", "reason", "invalid_or_missing_id")
+		return Identity{}, loginError("telegram_identity")
+	}
+	if claims.Subject == "" {
+		slog.Warn("Telegram identity rejected", "reason", "missing_subject")
+		return Identity{}, loginError("telegram_identity")
+	}
+	identity = Identity{ID: id, Subject: claims.Subject, Phone: strings.TrimPrefix(claims.Phone, "+"), PhoneVerified: claims.PhoneVerified}
+
 	if !identity.PhoneVerified || !regexp.MustCompile(`^[1-9][0-9]{6,14}$`).MatchString(identity.Phone) {
 		return Identity{}, loginError("telegram_phone_required")
 	}
