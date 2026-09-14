@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/asendia/legacy-api/api"
@@ -94,11 +95,17 @@ func CloudFunctionForFrontendWithNetlifyJWT(w http.ResponseWriter, r *http.Reque
 		http.Error(w, `{"err":"Cannot generate a response"}`, http.StatusInternalServerError)
 		return
 	}
-	tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		http.Error(w, `{"err":"Cannot save changes"}`, http.StatusInternalServerError)
+		return
+	}
 	fmt.Fprint(w, resStr)
 }
 
 func VerifyNetlifyJWT(r *http.Request) (jwtRes secure.JWTResponse, err error) {
+	if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer tg_") {
+		return verifyTelegramSession(r)
+	}
 	// Always login with this email during test or cmd
 	jwtRes = secure.JWTResponse{Email: "test@sejiwo.com"}
 	// Verify JWT token on prod env only

@@ -32,9 +32,15 @@ func CloudFunctionForSchedulerWithStaticSecret(ctx context.Context, m PubSubMess
 		Context: ctx,
 		Tx:      tx,
 	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(719282)`); err != nil {
+		return err
+	}
 	var res api.APIResponse
 	action := m.Attributes["action"]
 	switch action {
+	case "send-telegram":
+		res.StatusCode = http.StatusOK
+		res.ResponseMsg = "Telegram queue checked"
 	case "send-reminder-messages":
 		res, err = a.SendReminderMessages()
 	case "send-testaments":
@@ -52,13 +58,18 @@ func CloudFunctionForSchedulerWithStaticSecret(ctx context.Context, m PubSubMess
 		log.Printf("Controller error: %+v\n", err)
 		return err
 	}
+	if err := a.SendPendingTelegram(); err != nil {
+		return err
+	}
 	// Generate response
 	resStr, err := res.ToString()
 	if err != nil {
 		log.Printf("Cannot generate a response: %v\n", err)
 		return err
 	}
-	tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
 	log.Printf("Success action: %s, response: %s", action, resStr)
 	return nil
 }

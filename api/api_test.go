@@ -41,7 +41,13 @@ func TestMain(m *testing.M) {
 
 func deleteAndCreateTableMessages(ctx context.Context, tx pgx.Tx) error {
 	// Delete the table "messages if any"
-	qDropTable := `DROP TABLE IF EXISTS public.messages_email_receivers;
+	qDropTable := `DROP TABLE IF EXISTS public.email_delivery_receipts;
+ DROP TABLE IF EXISTS public.telegram_deliveries;
+ DROP TABLE IF EXISTS public.telegram_receivers;
+ DROP TABLE IF EXISTS public.telegram_sessions;
+ DROP TABLE IF EXISTS public.telegram_login_requests;
+ DROP TABLE IF EXISTS public.telegram_accounts;
+ DROP TABLE IF EXISTS public.messages_email_receivers;
 	DROP TABLE IF EXISTS public.messages;
 	DROP TABLE IF EXISTS public.emails;
 	`

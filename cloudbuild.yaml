@@ -1,6 +1,6 @@
 steps:
   - id: integration-test
-    name: golang:latest
+    name: golang:1.27.1
     entrypoint: bash
     args:
       - -c
@@ -37,7 +37,7 @@ steps:
         cp .env-prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
         gcloud functions deploy legacy-api-scheduler \
           --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-          --region asia-southeast1 --runtime go124 --memory 128Mi --timeout 15s --gen2 \
+          --region asia-southeast1 --runtime go127 --memory 128Mi --timeout 15s --gen2 \
           --update-labels service=legacy --max-instances 10 \
           --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
           --env-vars-file .env-prod-cloud-function.yaml

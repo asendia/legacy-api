@@ -1,6 +1,10 @@
 # legacy-api
 Backend API code for [sejiwo.com](https://sejiwo.com/)
 
+For compiler versions and security checks, see [Dependency checks](docs/dependencies.md).
+
+For optional Telegram login, reminders, and final delivery, see [Telegram setup](docs/telegram.md). The feature is disabled by default. Apply its database migration before you enable it.
+
 ## How Sejiwo Works
 
 Sejiwo is an automated digital will service that delivers your final message to loved ones only if you become unresponsive.
@@ -40,7 +44,7 @@ flowchart LR
 📋 **[View Technical Architecture & System Details](#technical-architecture)**
 
 ## Prerequisites
-- [Go 1.24](https://go.dev/doc/install)
+- [Go 1.27.1](https://go.dev/doc/install)
 - [Postgresql 17.6](https://www.postgresql.org/download/)
 - [sqlc](https://docs.sqlc.dev/en/latest/overview/install.html) (Optional, for generating db structs from data/schema.sql & data/query.sql)
 - [pgAdmin4](https://www.pgadmin.org/download/) (Optional, to manage the database or use psql instead)
@@ -150,7 +154,7 @@ cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
 # CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
 gcloud functions deploy legacy-api-scheduler \
   --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-  --region asia-southeast1 --runtime go124 --memory 128Mi --timeout 15s --gen2 \
+  --region asia-southeast1 --runtime go127 --memory 128Mi --timeout 15s --gen2 \
   --update-labels service=legacy --max-instances 10 \
   --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
   --env-vars-file .env-prod-cloud-function.yaml
