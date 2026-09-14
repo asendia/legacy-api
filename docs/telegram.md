@@ -1,6 +1,6 @@
 # Telegram setup
 
-Telegram is optional and is disabled unless `TELEGRAM_ENABLED=true`. Email stays active. No existing message or recipient row is changed by the migration.
+Telegram is optional. The production templates set `TELEGRAM_ENABLED=true` to preserve the configured production service. Other environments are disabled unless `TELEGRAM_ENABLED=true`. Email stays active. No existing message or recipient row is changed by the migration.
 
 Bot chats do not have end-to-end encryption. Existing CLIENT-AES text stays encrypted during delivery. The writer must give the recipient the password through a separate channel. Normal message text is visible to Telegram. Extension links are bearer secrets: anyone with the link can extend the date.
 
@@ -19,42 +19,98 @@ The bot cannot find or contact a recipient from a phone number or username alone
 ## BotFather
 
 1. Open [BotFather](https://t.me/BotFather) and send `/newbot`. Use a name that identifies Sejiwo. Save the bot token in Google Cloud Secret Manager as `telegram_bot_token`.
-2. In the bot's **Login Widget** settings, add both allowed URLs:
-   - `https://sejiwo.com`
-   - `https://sejiwo.com/telegram/callback`
-3. Keep the default **RS256** signing algorithm. Save the Client Secret as `telegram_client_secret`. Keep the Client ID for the API environment.
-4. Generate a separate random webhook secret with at least 32 characters from `A-Z`, `a-z`, `0-9`, `_`, and `-`. Save it as `telegram_webhook_secret`.
+2. Open the [BotFather mini app](https://t.me/botfather?startapp=), select the bot, then **Login Widget**. If the page shows a single domain field, select **Switch to OpenID Connect Login**. Under **Redirect URIs**, add exactly `https://sejiwo.com/telegram/callback`. Leave **Trusted Origins** and **Native Login** empty for this server-side token exchange.
+3. Keep **RS256**. Save the Client Secret as `telegram_client_secret`. The public Client ID is `8927237838`; the bot username is `SejiwoBot`.
+4. Generate a separate 64-character webhook secret using random letters and numbers. Uppercase and lowercase are valid. Save it as `telegram_webhook_secret`. The backend requires at least 32 characters; Telegram accepts up to 256 characters from `A-Z`, `a-z`, `0-9`, `_`, and `-`.
 5. Set the bot command descriptions: `/start` connects delivery; `/stop` stops Telegram delivery. Do not add the bot to groups. The backend ignores group messages.
 
 Do not put secrets in Git, the frontend, Netlify public variables, or screenshots.
 
 ## Deployment order
 
-The checked live service names are `legacy-api` and `legacy-api-scheduler`, in project `monarch-public`, region `asia-southeast1`. The Netlify project is `sejiwo` and uses `asendia/legacy-web`. Production settings were read only during development.
+The checked live service names are `legacy-api` and `legacy-api-scheduler`, in project `monarch-public`, region `asia-southeast1`. The Netlify project is `sejiwo` and uses `asendia/legacy-web`. The operator completed backend setup through the Google Cloud dashboard. Secret values are not stored in this repository.
 
 1. Back up the database. Apply `data/migrations/001_telegram.sql`, then `data/migrations/002_email_retries.sql`, once to the production database. If 001 is already applied, apply only 002. Do not run `data/schema.sql`, seed files, or tests against production. Test the migrations on a separate database first.
 2. Confirm that the backend database role can read and write the six new tables and use `telegram_deliveries_id_seq`. Row-level security blocks the Supabase public API. A table owner or a role with `BYPASSRLS` can use the tables. If the app uses another database role, give only that role the required table grants and row policies. Do not give access to `anon` or `authenticated`, and do not disable row-level security.
-3. Deploy the backend PR with `TELEGRAM_ENABLED` unset or `false` on both services. Check existing Google login, message save, extension, and email delivery.
+3. For a new environment, set `TELEGRAM_ENABLED=false` in both deployment templates before the first deployment. Check existing Google login, message save, extension, and email delivery.
 4. Add these settings. Keep all existing database and Mailjet settings.
 
 | Setting | API service | Scheduler |
 | --- | --- | --- |
 | `TELEGRAM_ENABLED` | `true` after setup | `true` after setup |
-| `TELEGRAM_CLIENT_ID` | BotFather Client ID | Not used |
+| `TELEGRAM_CLIENT_ID` | `8927237838` | Not used |
 | `TELEGRAM_CLIENT_SECRET` | Secret Manager reference | Not used |
-| `TELEGRAM_BOT_USERNAME` | Bot username without `@` | Not used |
+| `TELEGRAM_BOT_USERNAME` | `SejiwoBot` | Not used |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret Manager reference | Not used |
 | `TELEGRAM_BOT_TOKEN` | Not used for login | Secret Manager reference |
 | `ENCRYPTION_KEY` | Existing 32-byte key | Same existing key |
 
-Use additive secret updates. A command with `--set-secrets` can replace existing secret references; keep the database and Mailjet references. Keep the encryption key unchanged during rollout. It is also used to protect queue content and the phone hash. A later key change needs a separate migration plan.
+`cloudbuild.yaml` uses `--update-secrets` with `telegram_client_secret:latest` and `telegram_webhook_secret:latest` on the API, and `telegram_bot_token:latest` on the scheduler. Use additive secret updates. A command with `--set-secrets` replaces existing secret references; keep the database and Mailjet references. Keep the encryption key unchanged during rollout. It is also used to protect queue content and the phone hash. A later key change needs a separate migration plan.
 
 5. Register a Telegram webhook with the Bot API `setWebhook` method. Set `url` to `https://legacy-api-kg4uaex4ca-as.a.run.app/legacy-api-telegram-webhook`, `secret_token` to the webhook secret, and `allowed_updates` to `["message"]`. Keep the bot token out of shell history and logs. Check `getWebhookInfo` for delivery errors. Do not discard pending updates during normal updates.
-6. Add a Cloud Scheduler Pub/Sub job for the existing topic `project-legacy-scheduler`, with attribute `action=send-telegram`, every five minutes. Keep the two existing reminder and final-message schedules. This new action only drains stored Telegram deliveries; it does not send email or advance dates. Each run sends at most three Telegram messages, with a two-second timeout per request.
-7. Deploy the frontend PR with `PUBLIC_TELEGRAM_ENABLED=false`. After the backend, webhook, and queue job are ready, set it to `true` in Netlify and deploy again. Only this boolean belongs in Netlify. Keep preview deployments disabled unless they use a separate test backend and registered login URL.
+6. Use the existing `SendTelegramMessages` Cloud Scheduler Pub/Sub job described below. For a new environment, create it once. Keep the two existing reminder and final-message schedules. This new action only drains stored Telegram deliveries; it does not send email or advance dates. Each run sends at most three Telegram messages, with a two-second timeout per request.
+7. The frontend `netlify.toml` sets `PUBLIC_TELEGRAM_ENABLED=true` for production and `false` for other deploy contexts. The flag is read at build time. For a new environment, keep it false until the backend, webhook, and queue job are ready, then build and deploy again. Only this public boolean belongs in Netlify. Keep preview deployments disabled unless they use a separate test backend and registered login URL.
 8. Use a test writer and consenting test recipient to check login, a reminder, final delivery, `/stop`, a blocked bot, and an email failure. Do not change dates or recipients on a real user's message. A real BotFather configuration is required for this final check.
 
-The existing Cloud Build file reads environment templates. If you use it, preserve the new flags and secret references in your deployment configuration. This change does not enable Telegram or alter production jobs by itself.
+## Production schedules
+
+All jobs use region `asia-southeast1`, time zone `Asia/Jakarta`, and Pub/Sub topic `project-legacy-scheduler`.
+
+| Job | Frequency | Message attribute `action` |
+| --- | --- | --- |
+| `SendReminderMessages` | `22 19 * * *` | `send-reminder-messages` |
+| `SendTestaments` | `38 19 * * *` | `send-testaments` |
+| `SendTelegramMessages` | `48 19 * * *` | `send-telegram` |
+
+The Telegram job body is `{}`. Put `action` in message attributes, not in the body. The daily schedule is an operator cost preference. The first two jobs also attempt queued Telegram deliveries after their normal work. Each invocation attempts at most three Telegram messages. A large queue can take several days to clear. Job names are labels; the code dispatches by the `action` attribute. Do not create duplicate jobs.
+
+## Configuration ownership
+
+Change production environment values in the templates and secret references in `cloudbuild.yaml`. Keep actual secrets in Google Cloud Secret Manager. Production secret references use `latest` by operator choice. New container instances resolve that version; redeploy affected services after a secret change so all instances use the intended value. If the webhook secret changes, update the Telegram webhook registration to match.
+
+Dashboard changes can be used for an urgent rollback, but update the repository before the next automated deployment. `--env-vars-file` replaces environment variables. The existing scheduler jobs, BotFather settings, webhook registration, and secret values remain external resources; this pipeline does not create or modify them.
+
+The frontend configuration lives in `legacy-web/netlify.toml`. Its production setting takes precedence over a duplicate Netlify dashboard build setting. Remove duplicate dashboard flags after the repository deployment is verified. A code or config deployment is not proof that live Telegram login and final delivery have passed.
+
+## Register and check the webhook locally
+
+Use a local terminal if preferred; Cloud Shell is not required. The script reads secrets without echo and passes them to curl through standard input. It sends the bot token and webhook secret only to Telegram. Do not use the Client Secret in place of the bot token. Keep shell tracing disabled.
+
+```bash
+bash <<'BASH'
+LC_ALL=C
+read -r -s -p "Bot token: " bot_token </dev/tty
+printf '\n'
+read -r -s -p "Webhook secret: " webhook_secret </dev/tty
+printf '\n'
+if [[ ! "$bot_token" =~ ^8927237838:[A-Za-z0-9_-]+$ ]]; then
+  echo "Invalid bot token or wrong bot ID."
+  exit 1
+fi
+if [[ ! "$webhook_secret" =~ ^[A-Za-z0-9_-]+$ ]] ||
+   (( ${#webhook_secret} < 32 || ${#webhook_secret} > 256 )); then
+  echo "Invalid webhook secret characters or length."
+  exit 1
+fi
+{
+  printf 'url = "https://api.telegram.org/bot%s/setWebhook"\n' "$bot_token"
+  printf 'data-urlencode = "secret_token=%s"\n' "$webhook_secret"
+} | curl --config - --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --data-urlencode 'url=https://legacy-api-kg4uaex4ca-as.a.run.app/legacy-api-telegram-webhook' \
+  --data-urlencode 'allowed_updates=["message"]' \
+  --data-urlencode 'drop_pending_updates=false'
+printf '\n'
+printf 'url = "https://api.telegram.org/bot%s/getWebhookInfo"\n' "$bot_token" |
+  curl --config - --silent --show-error --connect-timeout 10 --max-time 30
+printf '\n'
+unset bot_token webhook_secret
+BASH
+```
+
+Check the JSON result for `ok: true`, the expected webhook URL, pending updates, and any delivery error. HTTP success alone is not sufficient. Send `/start` from a test account after the API is enabled, then check webhook status and API logs. A plain `/start` has no bot reply. An empty pending count alone is not proof of a complete login or delivery test.
+
+The character check and length check are separate because the macOS regular expression engine rejects the interval `{32,256}`. Do not replace a valid secret because of that invalid pattern.
 
 ## Retry and monitoring
 
@@ -62,7 +118,7 @@ Queue content uses AES-GCM and is removed after success or permanent cancellatio
 
 An extension or message edit changes the extension secret and cancels prior pending deliveries. Recipient removal, email unsubscribe, and `/stop` also cancel pending Telegram delivery. The queue checks the current message and recipient state before sending. A request already accepted by Telegram cannot be recalled by a later edit.
 
-Failed requests wait at least one hour, or longer if Telegram asks for it. HTTP 400 and 403 stop that delivery. Other failures stop after 20 attempts. With the five-minute queue job, ready work does not have to wait for the next daily email job. A Telegram failure does not disable an email address. Email success does not discard a pending Telegram delivery.
+Failed requests wait at least one hour, or longer if Telegram asks for it. HTTP 400 and 403 stop that delivery. Other failures stop after 20 attempts. With the selected daily queue job, retries can wait until a later daily run. A Telegram failure does not disable an email address. Email success does not discard a pending Telegram delivery.
 
 Telegram does not offer a client idempotency key for `sendMessage`. A timeout or a crash after Telegram accepts a message but before the database commits can cause a duplicate on retry. Database locks prevent concurrent scheduler runs from sending the same pending row. This is at-least-once delivery, not a guarantee of exactly one copy.
 
@@ -85,11 +141,11 @@ FROM telegram_deliveries
 GROUP BY kind;
 ```
 
-Alert on pending work that stays due for more than one hour, new stopped deliveries, and failed scheduler runs. Keep an operator review of these signals. `/stop` and user edits also create stopped rows, so a stopped count alone is not proof of an error.
+With these daily schedules, alert on pending work that stays due for more than 24 hours, new stopped deliveries, and failed scheduler runs. Review queue size against the small daily send limit. Keep an operator review of these signals. `/stop` and user edits also create stopped rows, so a stopped count alone is not proof of an error.
 
 ## Rollback
 
-Set `PUBLIC_TELEGRAM_ENABLED=false` in Netlify and deploy. Set `TELEGRAM_ENABLED=false` on both backend services and pause the new queue job. Existing Google login and email remain available. Keep the added tables so pending work and account links are preserved. Do not delete them during rollback. Existing Telegram sessions stop working while the feature is disabled; users can use Google login.
+Set `PUBLIC_TELEGRAM_ENABLED=false` in the production context of the frontend `netlify.toml` and deploy. Set `TELEGRAM_ENABLED=false` in both backend production templates and deploy, or use an urgent dashboard change followed by the same repository change and pause the new queue job. Existing Google login and email remain available. Keep the added tables so pending work and account links are preserved. Do not delete them during rollback. Existing Telegram sessions stop working while the feature is disabled; users can use Google login.
 
 ## Sources
 
