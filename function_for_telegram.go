@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/asendia/legacy-api/secure"
 	"github.com/asendia/legacy-api/telegram"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func telegramEnabled() bool { return os.Getenv("TELEGRAM_ENABLED") == "true" }
@@ -92,6 +94,7 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var result interface{}
+	loginStep := "login_storage"
 	err = telegramTransaction(r.Context(), func(tx pgx.Tx) error {
 		ctx := r.Context()
 		switch input.Action {
@@ -133,37 +136,52 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 			result = map[string]string{"url": client.AuthorizationURL(state, verifier), "state": state, "proof": proof}
 			return err
 		case "login-finish":
+			loginStep = "login_request"
 			if len(input.State) != 43 || len(input.Proof) != 43 || input.Code == "" {
 				return errors.New("invalid login request")
 			}
+			loginStep = "login_storage"
 			var email *string
 			var verifier string
 			if err := tx.QueryRow(ctx, `DELETE FROM telegram_login_requests WHERE state_hash=$1 AND proof_hash=$2 AND expires_at>now() RETURNING verifier,email`, telegram.Hash(input.State), telegram.Hash(input.Proof)).Scan(&verifier, &email); err != nil {
-				return errors.New("login request has expired")
+				if errors.Is(err, pgx.ErrNoRows) {
+					return &telegram.LoginError{Code: "login_expired"}
+				}
+				return err
 			}
+			loginStep = "telegram_exchange"
 			identity, err := telegramLoginClient().Exchange(ctx, input.Code, verifier, input.State)
 			if err != nil {
 				return err
 			}
+			loginStep = "login_server_settings"
 			key := os.Getenv("ENCRYPTION_KEY")
 			if len(key) != 32 {
 				return errors.New("invalid server encryption settings")
 			}
+			loginStep = "login_storage"
 			if email != nil {
 				if _, err := tx.Exec(ctx, `INSERT INTO emails(email) VALUES ($1) ON CONFLICT DO NOTHING`, *email); err != nil {
 					return err
 				}
 				_, err = tx.Exec(ctx, `INSERT INTO telegram_accounts(email,subject,chat_id,phone_hash) VALUES ($1,$2,$3,$4) ON CONFLICT(email) DO UPDATE SET phone_hash=EXCLUDED.phone_hash WHERE telegram_accounts.subject=EXCLUDED.subject AND telegram_accounts.chat_id=EXCLUDED.chat_id`, *email, identity.Subject, identity.ID, telegram.PhoneHash(identity.Phone, key))
 				if err != nil {
-					return errors.New("this Telegram account or phone is already linked")
+					var databaseError *pgconn.PgError
+					if errors.As(err, &databaseError) && databaseError.Code == "23505" {
+						return &telegram.LoginError{Code: "telegram_link_conflict"}
+					}
+					return err
 				}
 			}
 			var accountEmail string
 			if err := tx.QueryRow(ctx, `SELECT email FROM telegram_accounts WHERE subject=$1 AND chat_id=$2 AND phone_hash=$3`, identity.Subject, identity.ID, telegram.PhoneHash(identity.Phone, key)).Scan(&accountEmail); err != nil {
-				return errors.New("sign in with Google first, then link Telegram in settings")
+				if errors.Is(err, pgx.ErrNoRows) {
+					return &telegram.LoginError{Code: "telegram_link_required"}
+				}
+				return err
 			}
 			if email != nil && accountEmail != *email {
-				return errors.New("Telegram is linked to another account")
+				return &telegram.LoginError{Code: "telegram_link_conflict"}
 			}
 			token, err := telegram.RandomToken()
 			if err != nil {
@@ -247,6 +265,16 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 	if err != nil {
+		if input.Action == "login-finish" {
+			var failure *telegram.LoginError
+			if errors.As(err, &failure) {
+				loginStep = failure.Code
+			}
+			slog.Warn("Telegram login failed", "step", loginStep)
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"err": "Telegram login could not finish.", "code": loginStep})
+			return
+		}
 		http.Error(w, `{"err":"Telegram request failed. Check your account settings or try again."}`, http.StatusBadRequest)
 		return
 	}
