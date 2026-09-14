@@ -3,7 +3,7 @@ Backend API code for [sejiwo.com](https://sejiwo.com/)
 
 For compiler versions and security checks, see [Dependency checks](docs/dependencies.md).
 
-For optional Telegram login, reminders, and final delivery, see [Telegram setup](docs/telegram.md). The feature is disabled by default. Apply its database migration before you enable it.
+For optional Telegram login, reminders, and final delivery, see [Telegram setup](docs/telegram.md). Production templates enable Telegram. Other environments keep it disabled unless explicitly enabled. Apply both Telegram migrations before the first production deployment.
 
 ## How Sejiwo Works
 
@@ -78,87 +78,16 @@ ENVIRONMENT=dev go run cmd/main.go # Or just use vscode debug feature
 2. Import `thunder-collection_legacy-api.json` from thunder client
 
 ## Deployment
-1. Create the secrets needed to run the apps
-```sh
-echo -n "PUT_THE_DB_PASSWORD_HERE" | \
-  gcloud secrets create "db_password" --replication-policy "automatic" --data-file -
 
-# This one needs to be exactly 69 characters length
-echo -n "PUT_THE_STATIC_SECRET_HERE" | \
-  gcloud secrets create "static_secret" --replication-policy "automatic" --data-file -
+Production uses `cloudbuild.yaml` and the two `.env-prod-*-template.yaml` files. These files define public settings and Secret Manager references. Secret values must stay in Secret Manager. Dashboard changes alone do not survive a deployment that replaces environment variables from these files.
 
-# 32 characters length for AES encryption
-echo -n "PUT_THE_ENCRYPTION_KEY_HERE" | \
-  gcloud secrets create "encryption_key" --replication-policy "automatic" --data-file -
+The production API uses `SejiwoBot` with Client ID `8927237838`. Both production services enable Telegram. Read [Telegram setup](docs/telegram.md) for the required database migrations, secret names, webhook registration, daily jobs, checks, and rollback steps. For a new environment, start with Telegram disabled until those steps are complete.
 
-# Additional SSL cert for Supabase
-# Download from https://supabase.com/docs/guides/database/connecting-to-postgres#connecting-with-ssl
-cat prod-ca-2021.crt | \
-  gcloud secrets create "supabase_ssl_certificate" --replication-policy "automatic" --data-file -
+Cloud Build runs integration tests before it deploys the API and scheduler. Each shell step stops on failure. Secret updates are additive and use `latest`; they preserve other secret references. The API image build must succeed before Cloud Run can deploy it.
 
-# To send emails
-echo -n "PUT_THE_MAILJET_API_KEY_HERE" | \
-  gcloud secrets create "mailjet_api_key" --replication-policy "automatic" --data-file -
+Use only the isolated test database for tests. Never run `data/schema.sql`, seed files, or tests against production. For an existing production database, back up the database and apply only the required migrations.
 
-# To send emails
-echo -n "PUT_THE_MAILJET_SECRET_KEY_HERE" | \
-  gcloud secrets create "mailjet_secret_key" --replication-policy "automatic" --data-file -
-```
-2. Give the secret manager read access to your project service account.
-```sh
-gcloud projects add-iam-policy-binding [YOUR_GCLOUD_PROJECT_NAME] --member='serviceAccount:[YOUR_GCLOUD_PROJECT_NAME]@appspot.gserviceaccount.com' --role='roles/secretmanager.secretAccessor'
-```
-3. Prepare the DB
-Connect to supabase: https://supabase.com/docs/guides/database/connecting-to-postgres#direct-connections
-Then using psql or pgAdmin:
-```sh
-##################################################################
-# Copy paste the query in data/seed.sql, edit the PASSWORD field #
-##################################################################
-
-# Switch to project_legacy database
-\c project_legacy
-
-###########################################
-# Copy paste the query in data/schema.sql #
-###########################################
-```
-4. Deploy the Cloud Run service
-```sh
-# Copy env
-cp .env-prod-template.yaml .env-prod.yaml
-# Then edit the .env-prod.yaml, follow the comments provided in the file
-
-gcloud run deploy legacy-api --source . \
-  --region=asia-southeast1 --allow-unauthenticated --timeout 15s \
-  --min-instances 0 --max-instances 100 --cpu 1 --memory 128Mi \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
-  --env-vars-file .env-prod.yaml --update-labels service=legacy --tag=main
-```
-5. Deploy the scheduler
-```sh
-# Create a pub/sub topic - this might take a while
-gcloud pubsub topics create project-legacy-scheduler
-
-# Create a google cloud scheduler
-gcloud scheduler jobs create pubsub SendReminderMessages --location asia-southeast1 --schedule "22 19 * * *" \
-  --topic project-legacy-scheduler --attributes action=send-reminder-messages \
-  --description "Send reminder messages daily" --time-zone "Asia/Jakarta"
-gcloud scheduler jobs create pubsub SendTestaments --location asia-southeast1 --schedule "38 19 * * *" \
-  --topic project-legacy-scheduler --attributes action=send-testaments \
-  --description "Send reminder messages daily" --time-zone "Asia/Jakarta"
-
-# Copy env
-cp .env.prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
-
-# CloudFunctionForSchedulerWithStaticSecret: legacy-api-scheduler
-gcloud functions deploy legacy-api-scheduler \
-  --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
-  --region asia-southeast1 --runtime go127 --memory 128Mi --timeout 15s --gen2 \
-  --update-labels service=legacy --max-instances 10 \
-  --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
-  --env-vars-file .env-prod-cloud-function.yaml
-```
+The existing Cloud Scheduler jobs are managed in the dashboard. Their schedules and message attributes are recorded in [Telegram setup](docs/telegram.md#production-schedules). Ordinary app deployments do not create or modify these jobs.
 
 ---
 

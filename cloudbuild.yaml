@@ -5,6 +5,7 @@ steps:
     args:
       - -c
       - |
+        set -eu
         echo "$$SUPABASE_SSL_CERTIFICATE" > prod-ca-2021.crt
         cp .env-test-template.yaml .env-test.yaml
         go test ./...
@@ -20,12 +21,13 @@ steps:
     args:
       - -c
       - |
+        set -eu
         cp .env-prod-template.yaml .env-prod.yaml
         gcloud builds submit --tag asia-southeast1-docker.pkg.dev/monarch-public/legacy-api/app:latest
         gcloud run deploy legacy-api --image asia-southeast1-docker.pkg.dev/monarch-public/legacy-api/app:latest \
           --region=asia-southeast1 --allow-unauthenticated --timeout 15s \
           --min-instances 0 --max-instances 100 --cpu 1 --memory 128Mi \
-          --set-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest \
+          --update-secrets DB_PASSWORD=db_password:latest,ENCRYPTION_KEY=encryption_key:latest,TELEGRAM_CLIENT_SECRET=telegram_client_secret:latest,TELEGRAM_WEBHOOK_SECRET=telegram_webhook_secret:latest \
           --env-vars-file .env-prod.yaml --update-labels service=legacy --tag=main
   - id: deploy-legacy-api-scheduler
     name: gcr.io/cloud-builders/gcloud
@@ -34,12 +36,13 @@ steps:
     args:
       - -c
       - |
+        set -eu
         cp .env-prod-cloud-function-template.yaml .env-prod-cloud-function.yaml
         gcloud functions deploy legacy-api-scheduler \
           --entry-point CloudFunctionForSchedulerWithStaticSecret --trigger-topic project-legacy-scheduler \
           --region asia-southeast1 --runtime go127 --memory 128Mi --timeout 15s --gen2 \
           --update-labels service=legacy --max-instances 10 \
-          --set-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest \
+          --update-secrets DB_PASSWORD=db_password:latest,STATIC_SECRET=static_secret:latest,ENCRYPTION_KEY=encryption_key:latest,MAILJET_API_KEY=mailjet_api_key:latest,MAILJET_SECRET_KEY=mailjet_secret_key:latest,TELEGRAM_BOT_TOKEN=telegram_bot_token:latest \
           --env-vars-file .env-prod-cloud-function.yaml
 availableSecrets:
   secretManager:
