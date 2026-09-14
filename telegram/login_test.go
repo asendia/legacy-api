@@ -104,3 +104,26 @@ func TestStoredContentTamper(t *testing.T) {
 		t.Fatal("tampered content accepted")
 	}
 }
+
+func TestLoginExchangeErrors(t *testing.T) {
+	for _, item := range []struct {
+		name, body, want string
+		status           int
+	}{
+		{"client", `{"error":"invalid_client","error_description":"private detail"}`, "telegram_client_settings", 401},
+		{"grant", `{"error":"invalid_grant"}`, "telegram_code_rejected", 400},
+		{"unknown", `{"error":"private-token-value"}`, "telegram_token_response", 400},
+		{"malformed", `private-token-value`, "telegram_token_response", 200},
+		{"empty", `{}`, "telegram_token_response", 200},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			client := LoginClient{HTTPClient: &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: item.status, Body: io.NopCloser(strings.NewReader(item.body))}, nil
+			})}}
+			_, err := client.Exchange(context.Background(), "private-code", "private-proof", "private-nonce")
+			if err == nil || err.Error() != item.want {
+				t.Fatalf("unexpected safe error: %v", err)
+			}
+		})
+	}
+}

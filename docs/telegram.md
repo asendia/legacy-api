@@ -152,3 +152,18 @@ Set `PUBLIC_TELEGRAM_ENABLED=false` in the production context of the frontend `n
 - [Telegram login and signed phone claims](https://core.telegram.org/bots/telegram-login)
 - [Bot start requirement](https://core.telegram.org/bots)
 - [Bot API webhook and delivery methods](https://core.telegram.org/bots/api)
+
+## Login failure codes
+
+The callback can fail after Telegram approves the request. The API returns a fixed `code` for the failed step and writes that code to the service log as `Telegram login failed`. It does not log credentials, token claims, phone numbers, or raw provider errors.
+
+- `telegram_client_settings`: check that the API uses the Client Secret from BotFather, not the bot token. Check the active Secret Manager version and redeploy after a change.
+- `telegram_code_rejected` or `login_expired`: start a new login in the same browser tab. Check that the callback URL matches exactly.
+- `telegram_phone_required`: allow Telegram to share the verified phone number.
+- `telegram_link_required`: sign in with Google, then link Telegram in Account settings.
+- `telegram_link_conflict`: the account cannot be linked to the selected Sejiwo account.
+- `telegram_token_verification`, `telegram_nonce`, `telegram_token_time`, or `telegram_identity`: inspect the provider configuration and validation step. Keep signature, issuer, audience, nonce, time, and phone checks enabled.
+- `login_storage`: check database access, migrations, and service health.
+- `login_server_settings`: check the existing encryption key configuration without changing the key.
+
+These codes identify the failed step. They do not prove that a live login fault is fixed. After a diagnostic deployment, retry once and use the safe code to select the next check. Do not collect or publish tokens or callback query strings.
