@@ -20,10 +20,33 @@ func TestLoginTokenChecks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"valid", "wrong-audience", "wrong-issuer", "wrong-nonce", "expired", "unsigned", "phone-not-verified", "missing-phone", "future-issued"} {
+	for _, name := range []string{"valid", "valid-string-id", "large-string-id", "fractional-id", "exponent-id", "overflow-id", "negative-id", "zero-id", "missing-id", "null-id", "boolean-id", "blank-id", "wrong-audience", "wrong-issuer", "wrong-nonce", "expired", "unsigned", "phone-not-verified", "missing-phone", "future-issued"} {
 		t.Run(name, func(t *testing.T) {
 			claims := map[string]interface{}{"iss": Issuer, "aud": "123", "sub": "subject", "id": 12345, "phone_number": "+628123456789", "phone_number_verified": true, "nonce": "nonce", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix()}
 			switch name {
+			case "valid-string-id":
+				claims["id"] = "12345"
+			case "large-string-id":
+				claims["id"] = "4503599627370495"
+			case "fractional-id":
+				claims["id"] = 1.5
+			case "exponent-id":
+				claims["id"] = "1e3"
+			case "overflow-id":
+				claims["id"] = "9223372036854775808"
+			case "negative-id":
+				claims["id"] = -1
+			case "zero-id":
+				claims["id"] = 0
+			case "missing-id":
+				delete(claims, "id")
+			case "null-id":
+				claims["id"] = nil
+			case "boolean-id":
+				claims["id"] = true
+			case "blank-id":
+				claims["id"] = ""
+
 			case "wrong-audience":
 				claims["aud"] = "other"
 			case "wrong-issuer":
@@ -74,8 +97,12 @@ func TestLoginTokenChecks(t *testing.T) {
 				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(string(encoded)))}, nil
 			})}}
 			identity, err := client.Exchange(context.Background(), "code", "verifier", "nonce")
-			if name == "valid" {
-				if err != nil || identity.Subject != "subject" || identity.Phone != "628123456789" {
+			if name == "valid" || name == "valid-string-id" || name == "large-string-id" {
+				expectedID := int64(12345)
+				if name == "large-string-id" {
+					expectedID = 4503599627370495
+				}
+				if err != nil || identity.ID != expectedID || identity.Subject != "subject" || identity.Phone != "628123456789" {
 					t.Fatalf("valid login failed: %v", err)
 				}
 			} else if err == nil {
