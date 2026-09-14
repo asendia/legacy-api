@@ -2,6 +2,8 @@ package data
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -56,4 +58,32 @@ LIMIT 100
 		return nil, err
 	}
 	return pgx.CollectRows(rows, pgx.RowToStructByPos[SelectInactiveMessagesRow])
+}
+
+// SelectCompletedEmailCycles locks completed cycles independently of the send batch.
+// A current receipt proves the cycle started. Old cycles and delayed retries do not qualify.
+func (q *Queries) SelectCompletedEmailCycles(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, `SELECT m.id FROM messages m
+        WHERE m.is_active AND m.sent_counter<3 AND m.content_encrypted<>''
+          AND m.inactive_at<CURRENT_DATE
+          AND EXISTS (
+            SELECT 1 FROM email_delivery_receipts e
+            WHERE e.message_id=m.id AND e.extension_secret=m.extension_secret
+              AND e.cycle_date=m.inactive_at
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM messages_email_receivers r
+            WHERE r.message_id=m.id AND NOT r.is_unsubscribed
+              AND NOT EXISTS (
+                SELECT 1 FROM email_delivery_receipts e
+                WHERE e.message_id=m.id AND e.email_receiver=r.email_receiver
+                  AND e.extension_secret=m.extension_secret AND e.cycle_date=m.inactive_at
+                  AND (e.sent_at IS NOT NULL OR e.stopped_at IS NOT NULL)
+              )
+          )
+        ORDER BY m.created_at,m.id LIMIT 100 FOR UPDATE OF m`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }

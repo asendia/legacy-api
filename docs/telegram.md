@@ -72,6 +72,8 @@ Monitor `email_delivery_receipts` rows where `stopped_at IS NOT NULL AND sent_at
 
 Email and Telegram reminders use the same selected batch. Telegram queue rows are stored before email success can advance the reminder date.
 
+Cycle completion is checked separately from pending sends. If the last pending recipient unsubscribes after a cycle starts, the next scheduler run can complete that cycle without sending a duplicate. Completion requires a receipt for the current extension secret and cycle date, and no subscribed recipient with unfinished work. Up to 100 completed messages advance per run. Later cycles still use the existing 15-day schedule and three-cycle limit.
+
 Check queue counts without reading private content:
 
 ```sql

@@ -45,10 +45,6 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 	}
 	mailItems := []mail.MailItem{}
 	sentRows := []data.SelectInactiveMessagesRow{}
-	expected := map[uuid.UUID]data.SelectInactiveMessagesRow{}
-	for _, row := range rows {
-		expected[row.MsgID] = row
-	}
 	messageContentMap := map[uuid.UUID]string{}
 	for _, row := range rows {
 		msgContent := messageContentMap[row.MsgID]
@@ -114,19 +110,19 @@ func (a *APIForScheduler) SendTestamentsOfInactiveMessages() (res APIResponse, e
 			}
 		}
 	}
-	// Advance each message once. Stored receipts protect partial retries when Telegram is enabled.
-	for id, row := range expected {
-		if receiptsEnabled {
-			var pending int
-			if err := a.Tx.QueryRow(a.Context, `SELECT count(*) FROM messages_email_receivers r WHERE r.message_id=$1 AND NOT r.is_unsubscribed AND NOT EXISTS(SELECT 1 FROM email_delivery_receipts e WHERE e.message_id=r.message_id AND e.email_receiver=r.email_receiver AND e.extension_secret=$2 AND e.cycle_date=$3 AND (e.sent_at IS NOT NULL OR e.stopped_at IS NOT NULL))`, id, row.MsgExtensionSecret, row.MsgInactiveAt).Scan(&pending); err != nil {
-				return res, err
-			}
-			if pending > 0 {
-				continue
-			}
-		} else if success[id] == 0 {
-			continue
+	// Completion must also find cycles with no remaining send rows.
+	var completed []uuid.UUID
+	if receiptsEnabled {
+		completed, err = queries.SelectCompletedEmailCycles(a.Context)
+		if err != nil {
+			return res, err
 		}
+	} else {
+		for id := range success {
+			completed = append(completed, id)
+		}
+	}
+	for _, id := range completed {
 		if _, updateError := queries.UpdateMessageAfterSendingTestament(a.Context, id); updateError != nil {
 			return res, updateError
 		}
