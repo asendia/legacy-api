@@ -99,6 +99,11 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		switch input.Action {
 		case "login-start", "link-start":
+			if input.Action == "link-start" {
+				if err := lockTelegramAccount(ctx, tx, user.Email); err != nil {
+					return err
+				}
+			}
 			var email *string
 			if input.Action == "link-start" {
 				email = &user.Email
@@ -143,6 +148,18 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 			loginStep = "login_storage"
 			var email *string
 			var verifier string
+			// Lock account linking before consuming the request. Unlink uses the same lock.
+			if err := tx.QueryRow(ctx, `SELECT email FROM telegram_login_requests WHERE state_hash=$1 AND proof_hash=$2 AND expires_at>now()`, telegram.Hash(input.State), telegram.Hash(input.Proof)).Scan(&email); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return &telegram.LoginError{Code: "login_expired"}
+				}
+				return err
+			}
+			if email != nil {
+				if err := lockTelegramAccount(ctx, tx, *email); err != nil {
+					return err
+				}
+			}
 			if err := tx.QueryRow(ctx, `DELETE FROM telegram_login_requests WHERE state_hash=$1 AND proof_hash=$2 AND expires_at>now() RETURNING verifier,email`, telegram.Hash(input.State), telegram.Hash(input.Proof)).Scan(&verifier, &email); err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					return &telegram.LoginError{Code: "login_expired"}
@@ -195,7 +212,12 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 			result = map[string]interface{}{"email": accountEmail, "accessToken": token, "expiresAt": time.Now().Add(time.Hour).UnixMilli()}
 			return err
 		default:
-			if input.Action == "reminders" || input.Action == "receiver-link" || input.Action == "receiver-remove" {
+			if input.Action == "unlink" {
+				if err := lockTelegramAccount(ctx, tx, user.Email); err != nil {
+					return err
+				}
+			}
+			if input.Action == "reminders" || input.Action == "receiver-link" || input.Action == "receiver-remove" || input.Action == "unlink" {
 				if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(719282)`); err != nil {
 					return err
 				}
@@ -229,6 +251,10 @@ func TelegramAPI(w http.ResponseWriter, r *http.Request) {
 				}
 				result = map[string]interface{}{"linked": linked, "remindersEnabled": enabled, "receivers": receivers}
 				return nil
+			case "unlink":
+				if err := unlinkTelegramAccount(ctx, tx, user.Email); err != nil {
+					return err
+				}
 			case "reminders":
 				tag, err := tx.Exec(ctx, `UPDATE telegram_accounts SET reminders_enabled=$1 WHERE email=$2`, input.Enabled, user.Email)
 				if err != nil {
