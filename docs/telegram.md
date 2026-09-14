@@ -175,3 +175,13 @@ The signed `id` claim can contain an integer or a decimal integer string. Both f
 Missing, null, zero, negative, fractional, and out-of-range IDs are rejected. Token validation and verified-phone checks still apply. Identity failures log only a fixed reason (`claim_encoding`, `invalid_or_missing_id`, or `missing_subject`), never claim values.
 
 The numeric/string ID variation is also documented in the [Telegram OIDC library claim type](https://pkg.go.dev/github.com/tergeoo/telegram-go/oidc#OIDCClaims). The official [Telegram claim example](https://core.telegram.org/bots/telegram-login#user-data-structure) shows the numeric form. No extra library is required for this parsing step.
+
+## Unlink a writer account
+
+The authenticated `unlink` action removes only the current writer's Telegram account. It revokes all Telegram sessions through the existing foreign key, deletes pending account link requests, and stops pending reminders while clearing their stored content. It keeps the email account, messages, recipient links, final deliveries, and other users' data.
+
+Link start, link completion, and unlink share an account lock. Unlink also uses the existing delivery lock. A delayed link callback cannot restore a removed connection. Other accounts can still log in. An accepted Telegram send cannot be recalled.
+
+The frontend asks for confirmation. A Google session stays signed in; a Telegram session signs out and clears local drafts. Deploy the backend before the frontend. No migration or secret change is required.
+
+For the database regression test, create an isolated local database named `sejiwo_unlink_test`, apply `data/schema.sql` and both migrations, then set `SEJIWO_UNLINK_TEST_URL` to its `postgres://127.0.0.1:PORT/sejiwo_unlink_test` URL and run `go test . -run TestUnlinkTelegramAccount`. The test refuses other hosts and database names. Its fixture changes roll back. Never point this test at production.

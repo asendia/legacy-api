@@ -47,3 +47,15 @@ func TestTelegramDisabled(t *testing.T) {
 		t.Fatal("disabled Telegram session accepted")
 	}
 }
+
+func TestTelegramUnlinkRequiresLogin(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "prod")
+	t.Setenv("TELEGRAM_ENABLED", "true")
+	r := httptest.NewRequest("POST", "/legacy-api-telegram", strings.NewReader(`{"action":"unlink","email":"other@example.com"}`))
+	r.Header.Set("Origin", "https://sejiwo.com")
+	w := httptest.NewRecorder()
+	TelegramAPI(w, r)
+	if w.Code != 401 {
+		t.Fatalf("unauthenticated unlink returned %d", w.Code)
+	}
+}
